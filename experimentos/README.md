@@ -1,0 +1,30 @@
+# Experimentos
+
+Cada experimento responde a uma pergunta e varia uma única grandeza. Cada ponto é uma
+pasta com a configuração lida pelo simulador e os resultados agregados da sua amostra.
+
+| Experimento | Pergunta | Variável | Pontos |
+|---|---|---|---|
+| [`densidade-gpu/`](densidade-gpu/) | Quantos servidores de borda precisam ter GPU? | K servidores com GPU entre 14, com 9 clientes YOLO | K01, K02, K03, K07, K14 |
+| [`escala-clientes/`](escala-clientes/) | Quantos clientes uma GPU atende? | N clientes YOLO sobre uma RTX 3050 | N01, N04, N06, N08, N09, N10, N12, N14 |
+| [`comparativos/`](comparativos/) | Figuras que reúnem os dois experimentos | — | — |
+
+## Estrutura de um ponto
+
+```
+<experimento>/<ponto>/
+├── config.properties      parâmetros da simulação
+├── edge_devices.xml       infraestrutura de borda
+├── applications.xml       carga
+└── resultados/
+    ├── run_manifest.csv   execuções que formam a amostra, com status e SHA-256
+    ├── metrics_runs.csv   uma linha por execução
+    ├── metrics_summary.csv  média, desvio e IC95 do ponto
+    ├── metrics_by_app.csv   média, desvio e IC95 por aplicação
+    ├── validacao.md       relatório da validação contra o modelo
+    └── figuras/
+```
+
+Os três arquivos de configuração são gerados por [`gerar_configs.py`](gerar_configs.py);
+alterações devem ser feitas nele. As saídas brutas de cada execução ficam em
+`saidas/<experimento>/<ponto>/`, fora do controle de versão.

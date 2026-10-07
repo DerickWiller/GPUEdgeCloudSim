@@ -1,0 +1,5 @@
+app,usuarios,usa_gpu,completed,failed,geradas,taxa_falha,failed_vm_capacity,failed_bw,failed_mobility,rejected_wlan_range
+YOLO_DETECTION,9,True,812380.0,87521.0,899901.0,9.725625374346734,87521.0,0.0,0.0,0.0
+INFOTAINMENT_APP,9,False,4238.0,0.0,4238.0,0.0,0.0,0.0,0.0,0.0
+HEALTH_APP,6,False,647.0,0.0,647.0,0.0,0.0,0.0,0.0,0.0
+HEAVY_COMP_APP,6,False,310.0,0.0,310.0,0.0,0.0,0.0,0.0,0.0

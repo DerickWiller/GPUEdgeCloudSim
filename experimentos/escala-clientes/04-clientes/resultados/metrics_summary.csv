@@ -1,0 +1,2 @@
+ponto,num_runs,latency_mean_ms,latency_std_ms,latency_ci_lower_ms,latency_ci_upper_ms,throughput_mean,throughput_std,throughput_ci_lower,throughput_ci_upper,failure_rate_mean,failure_rate_std,failure_rate_ci_lower,failure_rate_ci_upper,deadline_requirement_ms,latency_vs_deadline_ratio,deadline_met_by_mean
+N04,30,16.61630507796782,5.108447992442293,14.788270441090106,18.444339714845533,121.21178787878789,0.0002681019604930618,121.21169193973346,121.21188381784232,0.0,0.0,0.0,0.0,100.0,0.1661630507796782,True

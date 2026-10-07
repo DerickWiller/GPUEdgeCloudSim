@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!--
+  Um servidor de borda com uma RTX 3050 e uma VM que a utiliza com exclusividade.
+  Memória livre da GPU: 6144 − 14 × 416 = 320 MB, o que limita a
+  16 o número de quadros em processamento simultâneo.
+  Arquivo gerado por experimentos/gerar_configs.py.
+-->
+<edge_devices>
+
+	<datacenter arch="x86" os="Linux" vmm="Xen">
+		<costPerBw>0.1</costPerBw>
+		<costPerSec>3.0</costPerSec>
+		<costPerMem>0.05</costPerMem>
+		<costPerStorage>0.1</costPerStorage>
+		<location>
+			<x_pos>200</x_pos>
+			<y_pos>0</y_pos>
+			<wlan_id>0</wlan_id>
+			<attractiveness>2</attractiveness>
+		</location>
+		<hosts>
+			<host>
+				<core>4</core>
+				<mips>0</mips>
+				<ram>16000</ram>
+				<storage>250000</storage>
+				<gpus>
+					<gpu>
+						<type>NVIDIA_RTX_3050</type>
+						<cudaCores>2048</cudaCores>
+						<!-- Capacidade em MI/s: 91 MI / 4 ms. -->
+						<gflops>22750</gflops>
+						<!-- Memória livre para quadros, em MB: 6144 − N × 416. -->
+						<memory>320</memory>
+						<!-- Banda de memória, em GB/s; não entra no cálculo do tempo de execução. -->
+						<bandwidth>224</bandwidth>
+					</gpu>
+				</gpus>
+				<VMs>
+					<VM vmm="Xen" requiresGpu="true"><core>4</core><mips>10000</mips><ram>8192</ram><storage>100000</storage></VM>
+				</VMs>
+			</host>
+		</hosts>
+	</datacenter>
+
+</edge_devices>

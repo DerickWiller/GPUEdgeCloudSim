@@ -1,0 +1,2 @@
+app,usuarios,usa_gpu,completed,failed,geradas,taxa_falha,failed_vm_capacity,failed_bw,failed_mobility,rejected_wlan_range
+YOLO_DETECTION,1,True,100000.0,0.0,100000.0,0.0,0.0,0.0,0.0,0.0

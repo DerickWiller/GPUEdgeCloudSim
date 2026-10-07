@@ -1,0 +1,14 @@
+# Classes compiladas do simulador (execucao/compilar.sh)
+GPUEdgeCloudSim/bin/
+
+# Saídas brutas das simulações: grandes demais para o controle de versão
+saidas/
+
+__pycache__/
+*.pyc
+.idea/
+*.iml
+.vscode/
+
+# Instruções locais para o assistente de código
+CLAUDE.md
