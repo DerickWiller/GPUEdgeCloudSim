@@ -283,8 +283,14 @@ public class GpuEdgeServerManager extends EdgeServerManager {
                     locationElement.getElementsByTagName("x_pos").item(0).getTextContent());
                 int yPos = Integer.parseInt(
                     locationElement.getElementsByTagName("y_pos").item(0).getTextContent());
-                // Host de borda: tipo de local 0 e sem ponto de acesso associado (-1).
-                host.setPlace(new Location(0, -1, xPos, yPos));
+                int wlanId = Integer.parseInt(
+                    locationElement.getElementsByTagName("wlan_id").item(0).getTextContent());
+                int placeTypeIndex = Integer.parseInt(
+                    locationElement.getElementsByTagName("attractiveness").item(0).getTextContent());
+                // O servidor fica junto ao ponto de acesso do seu datacenter, como no
+                // EdgeCloudSim (Sonmez et al., 2018); a comparação desse wlan_id com o do
+                // dispositivo indica se a tarefa atravessa a MAN.
+                host.setPlace(new Location(placeTypeIndex, wlanId, xPos, yPos));
             }
 
             hostList.add(host);

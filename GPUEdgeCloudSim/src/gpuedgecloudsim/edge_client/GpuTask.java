@@ -33,6 +33,8 @@ public class GpuTask extends Task {
     private double actualGpuUtilization;
     private double gpuStartTime;
     private double gpuFinishTime;
+    /** Executada em servidor de borda distinto do ponto de acesso de submissão. */
+    private boolean routedThroughMan;
 
     public GpuTask(int mobileDeviceId, int cloudletId, long cloudletLength,
                    int pesNumber, long cloudletFileSize, long cloudletOutputSize,
@@ -68,6 +70,14 @@ public class GpuTask extends Task {
         this(-1, cloudletId, cloudletLength, pesNumber, cloudletFileSize, cloudletOutputSize,
              null, null, null, gpuLength, gpuInputData, gpuOutputData, requiredGpuMemory);
         this.setTaskType(taskType);
+    }
+
+    public boolean isRoutedThroughMan() {
+        return routedThroughMan;
+    }
+
+    public void setRoutedThroughMan(boolean routedThroughMan) {
+        this.routedThroughMan = routedThroughMan;
     }
 
     public long getGpuLength() {

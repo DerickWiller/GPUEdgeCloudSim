@@ -28,7 +28,12 @@ import gpuedgecloudsim.edge_client.GpuTask;
  * em que B_ef é a banda efetiva do ponto de acesso. Com contenção habilitada, a banda
  * nominal é dividida igualmente entre as transmissões simultâneas no mesmo ponto de acesso
  * (compartilhamento justo), e um buffer finito, quando configurado, descarta transmissões
- * que excedem sua capacidade. O modelo não inclui MAN nem WAN.
+ * que excedem sua capacidade.
+ *
+ * <p>Com {@code man_enabled}, a tarefa executada em servidor distinto do ponto de acesso
+ * do dispositivo atravessa também a rede metropolitana (MAN), entre o servidor local e o
+ * remoto, nos dois sentidos. O trecho da MAN é solicitado pela convenção do EdgeCloudSim:
+ * origem e destino iguais a {@code GENERIC_EDGE_DEVICE_ID}. O modelo não inclui WAN.</p>
  */
 public class GpuNetworkModel extends NetworkModel {
 
@@ -55,6 +60,22 @@ public class GpuNetworkModel extends NetworkModel {
     /** Atraso nulo sinaliza enlace saturado, convenção do EdgeCloudSim; o chamador registra falha por banda. */
     private static final double LINK_SATURATED = 0.0;
 
+    /**
+     * Intervalo de reestimação das taxas da MAN, em s: o mesmo período de atualização da
+     * fila M/M/1 do sample_app4 do EdgeCloudSim (Sonmez et al., 2019).
+     */
+    private static final double MAN_UPDATE_INTERVAL = 5.0;
+
+    /**
+     * Atraso máximo da MAN, em s; acima dele o enlace é tratado como saturado, como no
+     * sample_app4 do EdgeCloudSim (Sonmez et al., 2019).
+     */
+    private static final double MAN_MAX_DELAY = 15.0;
+
+    /** Trechos da MAN por sentido; o enlace é tratado como full-duplex. */
+    private ManLink manUplink;
+    private ManLink manDownlink;
+
     public GpuNetworkModel(int _numberOfMobileDevices, String _simScenario) {
         super(_numberOfMobileDevices, _simScenario);
         this.numberOfMobileDevices = _numberOfMobileDevices;
@@ -63,8 +84,27 @@ public class GpuNetworkModel extends NetworkModel {
 
     @Override
     public void initialize() {
+        SimSettings settings = SimSettings.getInstance();
+        // A banda nula tornaria toda transferência pela MAN uma saturação aparente, e ids
+        // de dispositivo a partir de GENERIC_EDGE_DEVICE_ID colidiriam com o trecho da MAN.
+        if (settings.isManEnabled() && settings.getManBandwidth() <= 0) {
+            throw new IllegalStateException("man_enabled=true exige man_bandwidth > 0");
+        }
+        if (settings.isManEnabled() && numberOfMobileDevices > SimSettings.GENERIC_EDGE_DEVICE_ID) {
+            throw new IllegalStateException("man_enabled=true admite no máximo "
+                    + SimSettings.GENERIC_EDGE_DEVICE_ID + " dispositivos");
+        }
+
+        manUplink = new ManLink(getWeightedMeanDataKB(5));
+        manDownlink = new ManLink(getWeightedMeanDataKB(6));
+
         SimLogger.printLine("GpuNetworkModel initialized with PCIe bandwidth: " +
                           PCIE_BANDWIDTH_GBPS + " GB/s");
+        SimLogger.printLine("GpuNetworkModel MAN: " +
+                          (SimSettings.getInstance().isManEnabled()
+                              ? "ON (" + SimSettings.getInstance().getManBandwidth() + " Kbps, "
+                                + SimSettings.getInstance().getInternalLanDelay() + " s)"
+                              : "OFF"));
         SimLogger.printLine("GpuNetworkModel WLAN contention: " +
                           (SimSettings.getInstance().isWlanContentionEnabled()
                               ? "ON (banda repartida entre transmissões simultâneas)"
@@ -143,9 +183,90 @@ public class GpuNetworkModel extends NetworkModel {
             .add(new double[] { CloudSim.clock() + duration, dataKB });
     }
 
-    /** Atraso de subida, em segundos: WLAN e, se a tarefa usa GPU, PCIe até a GPU. */
+    /**
+     * Tamanho médio dos dados das aplicações, em KB, ponderado pela proporção de uso; é a
+     * estimativa inicial do tamanho das transferências pela MAN. O índice segue a tabela de
+     * aplicações: 5 para a subida e 6 para a descida.
+     */
+    private double getWeightedMeanDataKB(int lookUpIndex) {
+        double[][] table = SimSettings.getInstance().getTaskLookUpTable();
+        double weightedSum = 0;
+        double weightTotal = 0;
+        for (double[] app : table) {
+            weightedSum += app[0] * app[lookUpIndex];
+            weightTotal += app[0];
+        }
+        return (weightTotal > 0) ? weightedSum / weightTotal : 0;
+    }
+
+    /**
+     * Um sentido da MAN como fila M/M/1 compartilhada pelo tráfego entre servidores de borda
+     * (Sonmez et al., 2018, 2019): d_MAN = 1 / (mu - lambda) + d_prop, com mu = B_MAN / (8 S),
+     * lambda e S (KB) medidos no intervalo anterior, B_MAN em Kbps e d_prop o
+     * lan_internal_delay (s). As chegadas são tratadas como Poisson em cada intervalo
+     * (MMPP/M/1), mesmo com carga periódica.
+     */
+    private static final class ManLink {
+        private double arrivalRate = 0;
+        private double meanSizeKB;
+        private double intervalStart = 0;
+        private int intervalCount = 0;
+        private double intervalSizeKB = 0;
+
+        /**
+         * O primeiro intervalo assume o enlace ocioso (lambda = 0); ele termina em 5 s,
+         * dentro do período de aquecimento.
+         */
+        ManLink(double initialMeanSizeKB) {
+            this.meanSizeKB = initialMeanSizeKB;
+        }
+
+        private void refreshEstimates(double now) {
+            double elapsed = now - intervalStart;
+            if (elapsed < MAN_UPDATE_INTERVAL) {
+                return;
+            }
+            arrivalRate = intervalCount / elapsed;
+            if (intervalCount > 0) {
+                meanSizeKB = intervalSizeKB / intervalCount;
+            }
+            intervalStart = now;
+            intervalCount = 0;
+            intervalSizeKB = 0;
+        }
+
+        /** Atraso, em segundos, de uma transferência de {@code dataKB} KB iniciada agora. */
+        double getDelay(double dataKB) {
+            refreshEstimates(CloudSim.clock());
+            intervalCount++;
+            intervalSizeKB += dataKB;
+
+            double sizeKbit = 8 * ((meanSizeKB > 0) ? meanSizeKB : dataKB);
+            double serviceRate = SimSettings.getInstance().getManBandwidth() / sizeKbit;
+            if (serviceRate <= arrivalRate) {
+                return LINK_SATURATED;
+            }
+            double delay = 1.0 / (serviceRate - arrivalRate)
+                    + SimSettings.getInstance().getInternalLanDelay();
+            return (delay > MAN_MAX_DELAY) ? LINK_SATURATED : delay;
+        }
+    }
+
+    /** Origem e destino genéricos de borda identificam o trecho da MAN, como no EdgeCloudSim. */
+    private static boolean isManHop(int sourceId, int destinationId) {
+        return sourceId == SimSettings.GENERIC_EDGE_DEVICE_ID
+                && destinationId == SimSettings.GENERIC_EDGE_DEVICE_ID;
+    }
+
+    /**
+     * Atraso de subida, em segundos. No trecho da MAN, o do servidor local ao remoto; nos
+     * demais casos, WLAN e, se a tarefa usa GPU, PCIe até a GPU.
+     */
     @Override
     public double getUploadDelay(int deviceId, int datacenterId, Task task) {
+        if (isManHop(deviceId, datacenterId)) {
+            return manUplink.getDelay(task.getCloudletFileSize());
+        }
         // getWlanBandwidth() retorna Kbps, apesar do nome; logo Kbit / Kbps resulta em segundos.
         double wlanBandwidthKbps = SimSettings.getInstance().getWlanBandwidth();
         double dataKB = task.getCloudletFileSize();
@@ -182,9 +303,16 @@ public class GpuNetworkModel extends NetworkModel {
         return totalDelay;
     }
 
-    /** Atraso de descida, em segundos: PCIe a partir da GPU, se usada, e WLAN. */
+    /**
+     * Atraso de descida, em segundos. No trecho da MAN, o do servidor remoto ao local; nos
+     * demais casos, PCIe a partir da GPU, se usada, e WLAN. Com MAN, o PCIe fica no trecho
+     * WLAN, e não junto da GPU remota: o total é o mesmo, muda só a ordem dos trechos.
+     */
     @Override
     public double getDownloadDelay(int deviceId, int datacenterId, Task task) {
+        if (isManHop(deviceId, datacenterId)) {
+            return manDownlink.getDelay(task.getCloudletOutputSize());
+        }
         double wlanBandwidthKbps = SimSettings.getInstance().getWlanBandwidth();
         double dataKB = task.getCloudletOutputSize();
         double dataKbit = dataKB * 8;

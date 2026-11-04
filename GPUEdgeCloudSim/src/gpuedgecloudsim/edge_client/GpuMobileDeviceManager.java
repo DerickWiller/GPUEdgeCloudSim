@@ -11,6 +11,7 @@ import org.cloudbus.cloudsim.core.SimEvent;
 import edu.boun.edgecloudsim.core.SimManager;
 import edu.boun.edgecloudsim.core.SimSettings;
 import edu.boun.edgecloudsim.edge_client.MobileDeviceManager;
+import edu.boun.edgecloudsim.edge_server.EdgeHost;
 import edu.boun.edgecloudsim.utils.Location;
 import edu.boun.edgecloudsim.utils.SimLogger;
 import edu.boun.edgecloudsim.utils.TaskProperty;
@@ -18,15 +19,20 @@ import edu.boun.edgecloudsim.utils.TaskProperty;
 import gpuedgecloudsim.edge_client.GpuTask;
 
 /**
- * Ciclo de vida da tarefa no dispositivo móvel: criação da GpuTask a partir da tabela de
- * aplicações, consulta ao orquestrador, envio ao datacenter após o atraso de subida e
- * recebimento do resultado após o atraso de descida.
- *
- * <p>Há três desfechos de falha, registrados separadamente: rejeição por capacidade (não
- * há VM ou GPU disponível), rejeição por banda (buffer do enlace cheio na subida) e falha
- * por banda (buffer cheio na descida, com a tarefa já processada).</p>
+ * Ciclo de vida da tarefa no dispositivo: criação da GpuTask, consulta ao orquestrador,
+ * envio ao datacenter após a subida e recebimento do resultado após a descida. Falhas:
+ * rejeição por capacidade, rejeição por banda na subida e falha por banda na descida.
+ * Com man_enabled, a tarefa em servidor remoto passa pela MAN nos dois sentidos, um
+ * evento por trecho, como no sample_app4 (Sonmez et al., 2019).
  */
 public class GpuMobileDeviceManager extends MobileDeviceManager {
+
+    /** Base das tags de evento próprias, a mesma do DefaultMobileDeviceManager. */
+    private static final int BASE = 100000;
+    /** A subida pela WLAN terminou no servidor local, que a repassa pela MAN. */
+    private static final int REQUEST_RECEIVED_BY_EDGE_DEVICE_TO_RELAY_NEIGHBOR = BASE + 5;
+    /** A descida pela MAN terminou no servidor local, que a repassa pela WLAN. */
+    private static final int RESPONSE_RECEIVED_BY_EDGE_DEVICE_TO_RELAY_MOBILE_DEVICE = BASE + 7;
 
     private UtilizationModel cpuUtilizationModel;
 
@@ -173,12 +179,18 @@ public class GpuMobileDeviceManager extends MobileDeviceManager {
         gpuTask.setAssociatedVmId(targetVm.getId());
         // O GpuDatacenter localiza o host pelo campo vmId do Cloudlet.
         gpuTask.setVmId(targetVm.getId());
+        gpuTask.setRoutedThroughMan(isServedByRemoteEdge(gpuTask, targetVm));
 
         SimLogger.getInstance().taskStarted(gpuTask.getCloudletId(), currentTime);
 
         // A tarefa é enviada diretamente ao datacenter, sem passar pela lista de cloudlets
-        // do DatacenterBroker, que a reenviaria sem registro no SimLogger.
-        schedule(targetDatacenterId, uploadDelay, CloudSimTags.CLOUDLET_SUBMIT, gpuTask);
+        // do DatacenterBroker, que a reenviaria sem registro no SimLogger. No caminho com
+        // MAN, ela chega antes ao servidor local, que a repassa.
+        if (gpuTask.isRoutedThroughMan()) {
+            schedule(getId(), uploadDelay, REQUEST_RECEIVED_BY_EDGE_DEVICE_TO_RELAY_NEIGHBOR, gpuTask);
+        } else {
+            schedule(targetDatacenterId, uploadDelay, CloudSimTags.CLOUDLET_SUBMIT, gpuTask);
+        }
 
         int vmType = SimSettings.VM_TYPES.EDGE_VM.ordinal();
         SimLogger.getInstance().taskAssigned(
@@ -250,19 +262,71 @@ public class GpuMobileDeviceManager extends MobileDeviceManager {
         ));
     }
 
+    /**
+     * Verifica se a VM escolhida está em servidor distinto do que atende o ponto de acesso
+     * de submissão. Cada datacenter de borda tem um ponto de acesso, identificado pelo
+     * wlan_id da sua localização.
+     */
+    private boolean isServedByRemoteEdge(GpuTask gpuTask, Vm targetVm) {
+        if (!SimSettings.getInstance().isManEnabled()
+                || !(targetVm.getHost() instanceof EdgeHost)
+                || gpuTask.getSubmittedLocation() == null) {
+            return false;
+        }
+        Location hostLocation = ((EdgeHost) targetVm.getHost()).getLocation();
+        return hostLocation != null
+                && hostLocation.getServingWlanId() != gpuTask.getSubmittedLocation().getServingWlanId();
+    }
+
+    /**
+     * Repasse da subida pelo servidor local ao remoto. Com a MAN saturada, a tarefa é
+     * rejeitada por banda antes de ocupar recurso de processamento.
+     */
+    private void relayToRemoteEdge(GpuTask gpuTask) {
+        double currentTime = CloudSim.clock();
+        double manDelay = SimManager.getInstance()
+                                    .getNetworkModel()
+                                    .getUploadDelay(SimSettings.GENERIC_EDGE_DEVICE_ID,
+                                                    SimSettings.GENERIC_EDGE_DEVICE_ID,
+                                                    gpuTask);
+        if (manDelay <= 0) {
+            SimLogger.getInstance().rejectedDueToBandwidth(
+                    gpuTask.getCloudletId(), currentTime,
+                    SimSettings.VM_TYPES.EDGE_VM.ordinal(),
+                    SimSettings.NETWORK_DELAY_TYPES.MAN_DELAY);
+            return;
+        }
+
+        gpuTask.setSubmissionTime(currentTime + manDelay);
+        SimLogger.getInstance().setUploadDelay(
+            gpuTask.getCloudletId(), manDelay, SimSettings.NETWORK_DELAY_TYPES.MAN_DELAY);
+        schedule(gpuTask.getAssociatedDatacenterId(), manDelay, CloudSimTags.CLOUDLET_SUBMIT, gpuTask);
+    }
+
     @Override
     public void processEvent(SimEvent ev) {
         switch (ev.getTag()) {
             case CloudSimTags.CLOUDLET_RETURN:
                 processGpuTaskReturn(ev);
                 break;
+            case REQUEST_RECEIVED_BY_EDGE_DEVICE_TO_RELAY_NEIGHBOR:
+                relayToRemoteEdge((GpuTask) ev.getData());
+                break;
+            case RESPONSE_RECEIVED_BY_EDGE_DEVICE_TO_RELAY_MOBILE_DEVICE: {
+                GpuTask gpuTask = (GpuTask) ev.getData();
+                deliverToMobileDevice(gpuTask, gpuTask.getAssociatedDatacenterId());
+                break;
+            }
             default:
                 super.processEvent(ev);
                 break;
         }
     }
 
-    /** Retorno da tarefa processada: aplica o atraso de descida e encerra o registro. */
+    /**
+     * Retorno da tarefa processada. No caminho com MAN, o resultado desce antes ao servidor
+     * local; nos demais, segue direto pela WLAN ao dispositivo.
+     */
     private void processGpuTaskReturn(SimEvent ev) {
         Cloudlet cloudlet = (Cloudlet) ev.getData();
 
@@ -278,6 +342,32 @@ public class GpuMobileDeviceManager extends MobileDeviceManager {
         if (datacenterId < 0) {
             datacenterId = gpuTask.getResourceId();
         }
+
+        if (gpuTask.isRoutedThroughMan()) {
+            double manDelay = SimManager.getInstance()
+                                        .getNetworkModel()
+                                        .getDownloadDelay(SimSettings.GENERIC_EDGE_DEVICE_ID,
+                                                          SimSettings.GENERIC_EDGE_DEVICE_ID,
+                                                          gpuTask);
+            // MAN saturada na descida: o resultado se perde com a tarefa já processada.
+            if (manDelay <= 0) {
+                SimLogger.getInstance().failedDueToBandwidth(
+                        gpuTask.getCloudletId(), currentTime,
+                        SimSettings.NETWORK_DELAY_TYPES.MAN_DELAY);
+                return;
+            }
+            SimLogger.getInstance().setDownloadDelay(
+                gpuTask.getCloudletId(), manDelay, SimSettings.NETWORK_DELAY_TYPES.MAN_DELAY);
+            schedule(getId(), manDelay, RESPONSE_RECEIVED_BY_EDGE_DEVICE_TO_RELAY_MOBILE_DEVICE, gpuTask);
+            return;
+        }
+
+        deliverToMobileDevice(gpuTask, datacenterId);
+    }
+
+    /** Trecho final da descida: aplica o atraso da WLAN e encerra o registro da tarefa. */
+    private void deliverToMobileDevice(GpuTask gpuTask, int datacenterId) {
+        double currentTime = CloudSim.clock();
 
         double downloadDelay = SimManager.getInstance()
                                          .getNetworkModel()

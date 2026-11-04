@@ -15,6 +15,7 @@
 | **Falha por capacidade** (`vm_capacity`) | Tarefa rejeitada por não haver VM com GPU e memória de vídeo livre. |
 | **Falha por banda** | Tarefa recusada porque o buffer do enlace sem fio está cheio; não ocorre com buffer infinito, o padrão. |
 | **Contenção de WLAN** | Divisão da banda do ponto de acesso entre as transmissões simultâneas nele. |
+| **MAN** | Rede metropolitana entre servidores de borda, atravessada pela tarefa executada num servidor distinto do que atende o ponto de acesso do dispositivo; fila M/M/1 por sentido (`man_enabled`). |
 | **Carga mista** | 30% de clientes YOLO e 70% de dispositivos com aplicações só de CPU, no experimento de densidade. |
 | **Registro por tarefa** (*deep log*) | Saída opcional com uma linha por tarefa, necessária para percentis e distribuições. |
 | **SIMRESULT** | Arquivos de saída do simulador com as métricas agregadas de uma execução. |

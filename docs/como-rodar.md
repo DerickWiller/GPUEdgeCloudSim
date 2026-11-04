@@ -128,6 +128,11 @@ python3 experimentos/gerar_configs.py
 
 O campo `simulation_time` do `config.properties` está em minutos.
 
+A rede metropolitana entre servidores de borda é ligada com `man_enabled=true` no
+`config.properties` (`docs/modelo.md`, seção 3). Sem a chave, ela fica desligada, como nas
+configurações dos experimentos publicados. Os validadores conferem o atraso de rede como
+piso (WLAN + PCIe); o termo da MAN ainda não tem checagem analítica.
+
 ## Cuidados na análise
 
 - **Média não é distribuição.** O SIMRESULT traz médias; percentis e CDF por tarefa

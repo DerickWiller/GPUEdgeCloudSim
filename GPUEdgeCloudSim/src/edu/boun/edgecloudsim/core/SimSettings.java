@@ -93,6 +93,11 @@ public class SimSettings {
 	// (drop-tail) quando excedido. Padrão: 0, buffer infinito (atrasa, nunca descarta).
 	private double WLAN_BUFFER_SIZE_KB;
 
+	// man_enabled: tarefas executadas em servidor de borda distinto do ponto de acesso do
+	// dispositivo atravessam a rede metropolitana (MAN), com banda man_bandwidth e atraso de
+	// propagação lan_internal_delay. Padrão: false, todos os servidores equivalentes ao local.
+	private boolean MAN_ENABLED;
+
 	// Mobile device configuration parameters
 	private int MIN_NUM_OF_MOBILE_DEVICES;
 	private int MAX_NUM_OF_MOBILE_DEVICES;
@@ -215,6 +220,7 @@ public class SimSettings {
 			GPU_EVENT_DRIVEN_COMPLETION = Boolean.parseBoolean(prop.getProperty("gpu_event_driven_completion", "false"));
 			WLAN_CONTENTION_ENABLED = Boolean.parseBoolean(prop.getProperty("wlan_contention_enabled", "false"));
 			WLAN_BUFFER_SIZE_KB = Double.parseDouble(prop.getProperty("wlan_buffer_size_kb", "0"));
+			MAN_ENABLED = Boolean.parseBoolean(prop.getProperty("man_enabled", "false"));
 
 			MIN_NUM_OF_MOBILE_DEVICES = Integer.parseInt(prop.getProperty("min_number_of_mobile_devices"));
 			MAX_NUM_OF_MOBILE_DEVICES = Integer.parseInt(prop.getProperty("max_number_of_mobile_devices"));
@@ -398,6 +404,12 @@ public class SimSettings {
 	public double getWlanBufferSizeKB()
 	{
 		return WLAN_BUFFER_SIZE_KB;
+	}
+
+	/** Indica se a tarefa executada em servidor de borda não local atravessa a MAN. */
+	public boolean isManEnabled()
+	{
+		return MAN_ENABLED;
 	}
 
 	/**
