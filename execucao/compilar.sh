@@ -12,5 +12,5 @@ find "$SIMULADOR/bin" -name '*.class' -delete
 
 mapfile -t FONTES < <(find "$SIMULADOR/src" -name '*.java')
 echo "Compilando ${#FONTES[@]} fontes Java"
-javac -encoding UTF-8 -nowarn -d "$SIMULADOR/bin" -cp "$SIMULADOR/lib/*" "${FONTES[@]}"
+javac -encoding UTF-8 -nowarn -d "$SIMULADOR_JAVA/bin" -cp "$SIMULADOR_JAVA/lib/*" "${FONTES[@]}"
 echo "OK: $(find "$SIMULADOR/bin" -name '*.class' | wc -l) classes em GPUEdgeCloudSim/bin"

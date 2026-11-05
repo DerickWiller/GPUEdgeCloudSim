@@ -1,9 +1,14 @@
 package gpuedgecloudsim.core;
 
+import java.io.FileDescriptor;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Locale;
 
 import org.cloudbus.cloudsim.Log;
 import org.cloudbus.cloudsim.core.CloudSim;
@@ -25,6 +30,11 @@ public class GpuSimulationMain {
 	 *             número da execução, que também é a semente do gerador aleatório
 	 */
 	public static void main(String[] args) {
+		// Ponto decimal e console em UTF-8 em qualquer sistema: com o idioma pt-BR do Windows,
+		// String.format usaria vírgula, e o console sairia na página de código local.
+		Locale.setDefault(Locale.ROOT);
+		System.setOut(new PrintStream(new FileOutputStream(FileDescriptor.out), true, StandardCharsets.UTF_8));
+		System.setErr(new PrintStream(new FileOutputStream(FileDescriptor.err), true, StandardCharsets.UTF_8));
 		Log.disable();
 		
 		SimLogger.enablePrintLog();

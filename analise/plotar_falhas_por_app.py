@@ -87,8 +87,8 @@ def ler_usuarios_por_app(run_dir: Path) -> dict:
 
     padrao = re.compile(r"Task Type \d+:\s*(\S+)\s*\((\d+) active devices")
     usuarios = {}
-    abrir = ((lambda: console.open(errors="replace")) if console.exists()
-             else (lambda: gzip.open(comprimido, "rt", errors="replace")))
+    abrir = ((lambda: console.open(encoding="utf-8", errors="replace")) if console.exists()
+             else (lambda: gzip.open(comprimido, "rt", encoding="utf-8", errors="replace")))
     with abrir() as fh:
         for i, linha in enumerate(fh):
             m = padrao.search(linha)
@@ -106,7 +106,7 @@ def ler_falhas_por_app(run_dir: Path) -> dict:
         app = app_name_from_log(log)
         if app is None:  # ALL_APPS
             continue
-        linhas = [l for l in log.read_text().splitlines()
+        linhas = [l for l in log.read_text(encoding="utf-8").splitlines()
                   if l.strip() and not l.startswith("#")]
         if not linhas:
             continue
