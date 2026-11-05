@@ -31,7 +31,7 @@ for i in $(seq 1 "$NUM_RUNS"); do
     echo "[$i/$NUM_RUNS] $PONTO seed $SEED"
     if SAIDA=$(bash "$RAIZ/execucao/rodar_simulacao.sh" "$PONTO" "$SEED" | tail -1) \
        && echo "${SAIDA#$RAIZ/}" >> "$LISTA" \
-       && python3 "$RAIZ/analise/validar_run.py" --ponto "$PONTO" \
+       && "$PYTHON" "$RAIZ/analise/validar_run.py" --ponto "$PONTO" \
               --output-dir "$SAIDA" --start-time "$INICIO_RUN"; then
         OK=$((OK + 1))
     else
@@ -43,5 +43,5 @@ done
 DURACAO=$(( $(date +%s) - INICIO ))
 echo "$PONTO: $OK de $NUM_RUNS execuções válidas em $((DURACAO / 60)) min $((DURACAO % 60)) s"
 echo "Execuções listadas em ${LISTA#$RAIZ/}. Para torná-las a amostra oficial do ponto:"
-echo "  python3 analise/publicar_manifest.py --ponto $PONTO --lista ${LISTA#$RAIZ/}"
+echo "  $PYTHON analise/publicar_manifest.py --ponto $PONTO --lista ${LISTA#$RAIZ/}"
 [ "$FALHAS" -eq 0 ]

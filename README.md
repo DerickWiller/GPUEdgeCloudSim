@@ -41,8 +41,8 @@ bash execucao/rodar_teste_rapido.sh       # uma execução de 1 cliente; FRTT es
 bash execucao/rodar_experimento.sh K02    # 30 execuções de 2 servidores com GPU
 ```
 
-Requisitos: Java 21 e Python 3.12 (`pip install -r requirements.txt`). O guia completo
-está em [`docs/como-rodar.md`](docs/como-rodar.md).
+Requisitos: Java 21 e Python 3.12 (`pip install -r requirements.txt`). Roda no Linux e,
+pelo Git Bash, no Windows. O guia completo está em [`docs/como-rodar.md`](docs/como-rodar.md).
 
 ## Documentação
 

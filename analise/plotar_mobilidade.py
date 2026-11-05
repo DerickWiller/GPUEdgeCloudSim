@@ -60,7 +60,7 @@ def carregar(num: str, indice_run: int = 0) -> tuple:
     quadros = []
     for log in logs:
         tempos, linhas = [], []
-        for linha in open(log):
+        for linha in open(log, encoding="utf-8"):
             if linha.startswith("#"):
                 continue
             p = linha.strip().split(";")
