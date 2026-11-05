@@ -10,7 +10,14 @@ configuração e os resultados agregados (versionados), e saidas/<experimento>/<
 guarda as saídas brutas do simulador (não versionadas).
 """
 
+import sys
 from pathlib import Path
+
+# No Windows, a saída redirecionada usa cp1252, que não representa símbolos como ✓.
+for _fluxo in (sys.stdout, sys.stderr):
+    if (getattr(_fluxo, "encoding", "") or "").lower().replace("-", "") != "utf8" \
+            and hasattr(_fluxo, "reconfigure"):
+        _fluxo.reconfigure(encoding="utf-8")
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 EXPERIMENTOS_DIR = REPO_ROOT / "experimentos"
@@ -141,7 +148,7 @@ if __name__ == "__main__":
     # pasta do ponto relativo a experimentos/ (densidade-gpu/02-gpus).
     import sys
     try:
-        print(ponto(sys.argv[1])["pasta"].relative_to(EXPERIMENTOS_DIR))
+        print(ponto(sys.argv[1])["pasta"].relative_to(EXPERIMENTOS_DIR).as_posix())
     except (IndexError, ValueError) as e:
         print(e if str(e) else "Uso: config.py <PONTO>", file=sys.stderr)
         sys.exit(1)

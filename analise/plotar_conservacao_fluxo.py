@@ -69,7 +69,7 @@ def metricas_do_ponto(ponto: str) -> dict:
         logs = list(run.glob(f"*_{APP_GPU}_GENERIC.log"))
         if not logs:
             continue
-        linhas = [l for l in open(logs[0]) if not l.startswith("#")]
+        linhas = [l for l in open(logs[0], encoding="utf-8") if not l.startswith("#")]
         if not linhas:
             continue
         p = linhas[0].split(";")

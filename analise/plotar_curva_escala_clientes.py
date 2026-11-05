@@ -168,7 +168,7 @@ def coletar():
 def salvar_csv(linhas):
     SAIDA.mkdir(parents=True, exist_ok=True)
     destino = SAIDA / "curva_escala_clientes.csv"
-    with open(destino, "w", newline="") as f:
+    with open(destino, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=list(linhas[0].keys()))
         w.writeheader()
         w.writerows(linhas)

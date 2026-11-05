@@ -42,7 +42,7 @@ echo "$PONTO, seed $SEED -> ${SAIDA#$RAIZ/}"
 # mais carregado.
 CONSOLE="$BASE/.console_${SEED}_$$.log.gz"
 set +e
-java -Xmx6g -Xms2g -cp "$CLASSPATH_SIM" "$CLASSE_PRINCIPAL" \
+java -Xmx6g -Xms2g -Dline.separator=$'\n' -cp "$CLASSPATH_SIM" "$CLASSE_PRINCIPAL" \
     "$CONFIG_USADA/config.properties" \
     "$CONFIG_USADA/edge_devices.xml" \
     "$CONFIG_USADA/applications.xml" \

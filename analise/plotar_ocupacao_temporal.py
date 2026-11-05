@@ -51,7 +51,7 @@ def series_do_ponto(num: str) -> pd.DataFrame:
     colunas = {}
     for i, log in enumerate(logs):
         tempos, cargas = [], []
-        for linha in open(log):
+        for linha in open(log, encoding="utf-8"):
             if linha.startswith("#"):
                 continue
             p = linha.strip().split(";")
