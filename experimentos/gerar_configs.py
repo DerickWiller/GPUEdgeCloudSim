@@ -6,7 +6,9 @@ edge_devices.xml e applications.xml. Dentro de um experimento os pontos diferem 
 única variável, e por isso são produzidos a partir de um mesmo modelo:
 
     densidade-gpu     K servidores com GPU entre 14, com 9 clientes YOLO fixos;
-    escala-clientes   N clientes YOLO sobre uma única GPU.
+    escala-clientes   N clientes YOLO sobre uma única GPU;
+    dois-servidores   N clientes YOLO num ponto de acesso, com uma segunda GPU
+                      alcançável pela MAN.
 
 Os arquivos gerados são derivados: alterações devem ser feitas neste script.
 
@@ -32,6 +34,10 @@ MEM_POR_QUADRO = 20      # MB de memória de trabalho por quadro em processament
 DENSIDADE_K = [1, 2, 3, 7, 14]
 DENSIDADE_CLIENTES_YOLO = 9          # 30% de 30 dispositivos
 ESCALA_N = [1, 4, 6, 8, 9, 10, 12, 14]
+DOIS_SERVIDORES_N = ESCALA_N
+# Com 10 ou mais clientes num ponto de acesso, a WLAN (480 Mbps) satura antes das duas GPUs
+# no rodízio (480 / 48,24 Mbps por cliente = 9,95): esses pontos só existem na política local.
+DOIS_SERVIDORES_N_RODIZIO = [n for n in ESCALA_N if n <= 9]
 
 
 def pasta_densidade(k: int) -> Path:
@@ -40,6 +46,10 @@ def pasta_densidade(k: int) -> Path:
 
 def pasta_escala(n: int) -> Path:
     return RAIZ / "escala-clientes" / pasta_do_ponto("escala", n)
+
+
+def pasta_dois_servidores(politica: str, n: int) -> Path:
+    return RAIZ / "dois-servidores" / politica / pasta_do_ponto("escala", n)
 
 
 def vram_livre(clientes_yolo: int) -> int:
@@ -57,12 +67,12 @@ def vram_livre(clientes_yolo: int) -> int:
 # =============================================================================
 
 def config_properties(titulo: str, dispositivos: int, rede_nuvem: dict,
-                      chegada_periodica_global: bool) -> str:
+                      chegada_periodica_global: bool, extra: str = "") -> str:
     chegada = ("""
 # Chegada periódica para todas as aplicações: o quadro é emitido a cada
 # poisson_interarrival segundos, com fase inicial uniforme por dispositivo.
 periodic_task_arrival=true
-""" if chegada_periodica_global else "")
+""" if chegada_periodica_global else "") + extra
 
     return f"""# {titulo}
 # Arquivo gerado por experimentos/gerar_configs.py.
@@ -86,8 +96,8 @@ mobile_device_counter_size={dispositivos}
 # Rede, em segundos e Mbps. A WLAN de 480 Mbps corresponde ao USB 2.0 High-Speed,
 # enlace do ambiente experimental de Rodrigues et al. (2026). Os demais valores
 # são os do EdgeCloudSim (Sonmez et al., 2018); man_bandwidth e lan_internal_delay
-# são os do sample_app5. A MAN só é atravessada com man_enabled=true, ausente aqui;
-# o modelo de rede GPU não usa WAN nem GSM.
+# são os do sample_app5. A MAN só é atravessada com man_enabled=true; o modelo de
+# rede GPU não usa WAN nem GSM.
 wan_propagation_delay={rede_nuvem['wan_propagation_delay']}
 gsm_propagation_delay=0.16
 lan_internal_delay=0.01
@@ -268,25 +278,30 @@ def datacenter(indice: int, x: int, atratividade: int, host: str) -> str:
 """
 
 
-def edge_devices_densidade(k: int) -> str:
-    """Catorze servidores de borda (Toczé et al., 2020, Tabela 5); os K primeiros têm GPU."""
+def host_borda(com_gpu: bool, memoria: int) -> str:
+    """Servidor de borda da densidade (Toczé et al., 2020, Tabela 5): 8 VMs de 2 núcleos a
+    10 000 MIPS; com GPU, a RTX 3050 fica com a primeira VM."""
     vm = ('<VM vmm="Xen" requiresGpu="{g}"><core>2</core><mips>10000</mips>'
           '<ram>4096</ram><storage>100000</storage></VM>')
+    vms = [vm.format(g="true" if (com_gpu and j == 0) else "false") for j in range(8)]
+    return ("\t\t\t<host>\n"
+            "\t\t\t\t<core>16</core>\n"
+            "\t\t\t\t<mips>0</mips>\n"
+            "\t\t\t\t<ram>65536</ram>\n"
+            "\t\t\t\t<storage>2000000</storage>\n"
+            + (bloco_gpu(memoria, "\t\t\t\t") if com_gpu else "")
+            + "\t\t\t\t<VMs>\n"
+            + "".join(f"\t\t\t\t\t{v}\n" for v in vms)
+            + "\t\t\t\t</VMs>\n"
+            "\t\t\t</host>\n")
+
+
+def edge_devices_densidade(k: int) -> str:
+    """Catorze servidores de borda (Toczé et al., 2020, Tabela 5); os K primeiros têm GPU."""
     memoria = vram_livre(DENSIDADE_CLIENTES_YOLO)
     dcs = []
     for i in range(14):
-        com_gpu = i < k
-        vms = [vm.format(g="true" if (com_gpu and j == 0) else "false") for j in range(8)]
-        host = ("\t\t\t<host>\n"
-                "\t\t\t\t<core>16</core>\n"
-                "\t\t\t\t<mips>0</mips>\n"
-                "\t\t\t\t<ram>65536</ram>\n"
-                "\t\t\t\t<storage>2000000</storage>\n"
-                + (bloco_gpu(memoria, "\t\t\t\t") if com_gpu else "")
-                + "\t\t\t\t<VMs>\n"
-                + "".join(f"\t\t\t\t\t{v}\n" for v in vms)
-                + "\t\t\t\t</VMs>\n"
-                "\t\t\t</host>\n")
+        host = host_borda(i < k, memoria)
         # Pontos de acesso espaçados de 400 unidades no eixo x; atratividade 2, 1, 1 em ciclo.
         dcs.append(datacenter(i, 200 + 400 * i, 2 if i % 3 == 0 else 1, host))
 
@@ -337,6 +352,27 @@ def edge_devices_escala(n: int) -> str:
 """
 
 
+def edge_devices_dois_servidores(n: int) -> str:
+    """Dois servidores de borda iguais aos da densidade, ambos com uma RTX 3050."""
+    memoria = vram_livre(n)
+    dcs = [datacenter(i, 200 + 400 * i, 2, host_borda(True, memoria)) for i in range(2)]
+    return f"""<?xml version='1.0' encoding='utf-8'?>
+<!--
+  Dois servidores de borda com 8 VMs de 2 núcleos e 10 000 MIPS cada, como na
+  densidade de GPU (Toczé et al., 2020, Tabela 5); ambos têm uma RTX 3050,
+  atribuída à primeira VM. Os clientes ficam todos no ponto de acesso do
+  primeiro servidor; o segundo só é alcançado pela MAN.
+  Memória livre de cada GPU: 6144 − {n} × 416 = {memoria} MB, pois o rodízio
+  envia quadros de todos os clientes às duas GPUs.
+  Arquivo gerado por experimentos/gerar_configs.py.
+-->
+<edge_devices>
+
+{"".join(dcs)}
+</edge_devices>
+"""
+
+
 # =============================================================================
 
 def escrever(pasta: Path, config: str, apps: str, edge: str) -> None:
@@ -371,6 +407,28 @@ def main() -> None:
                                    n, nuvem_escala, chegada_periodica_global=True),
                  applications_yolo(),
                  edge_devices_escala(n))
+
+    # Todos os clientes fixos no ponto de acesso 0, com a MAN ligada. No rodízio, a GPU
+    # segue o critério da borda heterogênea; na política local, só a GPU do servidor 0.
+    extra = """
+# Rede metropolitana entre os servidores e clientes fixos no ponto de acesso 0.
+man_enabled=true
+mobility_static_wlan_id=0
+"""
+    politicas = {
+        "rodizio": (DOIS_SERVIDORES_N_RODIZIO, "rodízio entre as duas GPUs", ""),
+        "local": (DOIS_SERVIDORES_N, "só a GPU local",
+                  "\n# Só as VMs do servidor do ponto de acesso do dispositivo.\nedge_vm_selection=LOCAL\n"),
+    }
+    for politica, (pontos, rotulo, chave) in politicas.items():
+        for n in pontos:
+            escrever(pasta_dois_servidores(politica, n),
+                     config_properties(f"Dois servidores: {n} cliente{'s' if n > 1 else ''} "
+                                       f"YOLO num ponto de acesso, {rotulo}.",
+                                       n, nuvem_escala, chegada_periodica_global=True,
+                                       extra=extra + chave),
+                     applications_yolo(),
+                     edge_devices_dois_servidores(n))
 
 
 if __name__ == "__main__":

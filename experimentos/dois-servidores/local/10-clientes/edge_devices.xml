@@ -1,0 +1,98 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!--
+  Dois servidores de borda com 8 VMs de 2 núcleos e 10 000 MIPS cada, como na
+  densidade de GPU (Toczé et al., 2020, Tabela 5); ambos têm uma RTX 3050,
+  atribuída à primeira VM. Os clientes ficam todos no ponto de acesso do
+  primeiro servidor; o segundo só é alcançado pela MAN.
+  Memória livre de cada GPU: 6144 − 10 × 416 = 1984 MB, pois o rodízio
+  envia quadros de todos os clientes às duas GPUs.
+  Arquivo gerado por experimentos/gerar_configs.py.
+-->
+<edge_devices>
+
+	<datacenter arch="x86" os="Linux" vmm="Xen">
+		<costPerBw>0.1</costPerBw>
+		<costPerSec>3.0</costPerSec>
+		<costPerMem>0.05</costPerMem>
+		<costPerStorage>0.1</costPerStorage>
+		<location>
+			<x_pos>200</x_pos>
+			<y_pos>0</y_pos>
+			<wlan_id>0</wlan_id>
+			<attractiveness>2</attractiveness>
+		</location>
+		<hosts>
+			<host>
+				<core>16</core>
+				<mips>0</mips>
+				<ram>65536</ram>
+				<storage>2000000</storage>
+				<gpus>
+					<gpu>
+						<type>NVIDIA_RTX_3050</type>
+						<cudaCores>2048</cudaCores>
+						<!-- Capacidade em MI/s: 91 MI / 4 ms. -->
+						<gflops>22750</gflops>
+						<!-- Memória livre para quadros, em MB: 6144 − N × 416. -->
+						<memory>1984</memory>
+						<!-- Banda de memória, em GB/s; não entra no cálculo do tempo de execução. -->
+						<bandwidth>224</bandwidth>
+					</gpu>
+				</gpus>
+				<VMs>
+					<VM vmm="Xen" requiresGpu="true"><core>2</core><mips>10000</mips><ram>4096</ram><storage>100000</storage></VM>
+					<VM vmm="Xen" requiresGpu="false"><core>2</core><mips>10000</mips><ram>4096</ram><storage>100000</storage></VM>
+					<VM vmm="Xen" requiresGpu="false"><core>2</core><mips>10000</mips><ram>4096</ram><storage>100000</storage></VM>
+					<VM vmm="Xen" requiresGpu="false"><core>2</core><mips>10000</mips><ram>4096</ram><storage>100000</storage></VM>
+					<VM vmm="Xen" requiresGpu="false"><core>2</core><mips>10000</mips><ram>4096</ram><storage>100000</storage></VM>
+					<VM vmm="Xen" requiresGpu="false"><core>2</core><mips>10000</mips><ram>4096</ram><storage>100000</storage></VM>
+					<VM vmm="Xen" requiresGpu="false"><core>2</core><mips>10000</mips><ram>4096</ram><storage>100000</storage></VM>
+					<VM vmm="Xen" requiresGpu="false"><core>2</core><mips>10000</mips><ram>4096</ram><storage>100000</storage></VM>
+				</VMs>
+			</host>
+		</hosts>
+	</datacenter>
+	<datacenter arch="x86" os="Linux" vmm="Xen">
+		<costPerBw>0.1</costPerBw>
+		<costPerSec>3.0</costPerSec>
+		<costPerMem>0.05</costPerMem>
+		<costPerStorage>0.1</costPerStorage>
+		<location>
+			<x_pos>600</x_pos>
+			<y_pos>0</y_pos>
+			<wlan_id>1</wlan_id>
+			<attractiveness>2</attractiveness>
+		</location>
+		<hosts>
+			<host>
+				<core>16</core>
+				<mips>0</mips>
+				<ram>65536</ram>
+				<storage>2000000</storage>
+				<gpus>
+					<gpu>
+						<type>NVIDIA_RTX_3050</type>
+						<cudaCores>2048</cudaCores>
+						<!-- Capacidade em MI/s: 91 MI / 4 ms. -->
+						<gflops>22750</gflops>
+						<!-- Memória livre para quadros, em MB: 6144 − N × 416. -->
+						<memory>1984</memory>
+						<!-- Banda de memória, em GB/s; não entra no cálculo do tempo de execução. -->
+						<bandwidth>224</bandwidth>
+					</gpu>
+				</gpus>
+				<VMs>
+					<VM vmm="Xen" requiresGpu="true"><core>2</core><mips>10000</mips><ram>4096</ram><storage>100000</storage></VM>
+					<VM vmm="Xen" requiresGpu="false"><core>2</core><mips>10000</mips><ram>4096</ram><storage>100000</storage></VM>
+					<VM vmm="Xen" requiresGpu="false"><core>2</core><mips>10000</mips><ram>4096</ram><storage>100000</storage></VM>
+					<VM vmm="Xen" requiresGpu="false"><core>2</core><mips>10000</mips><ram>4096</ram><storage>100000</storage></VM>
+					<VM vmm="Xen" requiresGpu="false"><core>2</core><mips>10000</mips><ram>4096</ram><storage>100000</storage></VM>
+					<VM vmm="Xen" requiresGpu="false"><core>2</core><mips>10000</mips><ram>4096</ram><storage>100000</storage></VM>
+					<VM vmm="Xen" requiresGpu="false"><core>2</core><mips>10000</mips><ram>4096</ram><storage>100000</storage></VM>
+					<VM vmm="Xen" requiresGpu="false"><core>2</core><mips>10000</mips><ram>4096</ram><storage>100000</storage></VM>
+				</VMs>
+			</host>
+		</hosts>
+	</datacenter>
+
+</edge_devices>
