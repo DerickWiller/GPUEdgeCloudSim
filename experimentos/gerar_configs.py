@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Gera as configurações dos pontos dos dois experimentos.
+"""Gera as configurações dos pontos dos experimentos.
 
 Cada ponto é uma pasta com os três arquivos lidos pelo simulador: config.properties,
 edge_devices.xml e applications.xml. Dentro de um experimento os pontos diferem em uma
@@ -8,7 +8,9 @@ edge_devices.xml e applications.xml. Dentro de um experimento os pontos diferem 
     densidade-gpu     K servidores com GPU entre 14, com 9 clientes YOLO fixos;
     escala-clientes   N clientes YOLO sobre uma única GPU;
     dois-servidores   N clientes YOLO num ponto de acesso, com uma segunda GPU
-                      alcançável pela MAN.
+                      alcançável pela MAN;
+    cameras-fixas     câmeras YOLO fixas em quatro pontos de acesso com GPU, com
+                      h câmeras no ponto mais carregado.
 
 Os arquivos gerados são derivados: alterações devem ser feitas neste script.
 
@@ -38,6 +40,16 @@ DOIS_SERVIDORES_N = ESCALA_N
 # Com 10 ou mais clientes num ponto de acesso, a WLAN (480 Mbps) satura antes das duas GPUs
 # no rodízio (480 / 48,24 Mbps por cliente = 9,95): esses pontos só existem na política local.
 DOIS_SERVIDORES_N_RODIZIO = [n for n in ESCALA_N if n <= 9]
+# Câmeras fixas: h câmeras no ponto quente (ponto de acesso 0) e 2, 1 e 1 nos demais. O
+# máximo de 9 por ponto mantém a WLAN abaixo da saturação (9,95), e o total, até 13, mantém
+# memória livre em cada GPU (6144 − 13 × 416 = 736 MB).
+CAMERAS_H = [2, 4, 6, 8, 9]
+CAMERAS_DEMAIS = [2, 1, 1]
+CAMERAS_POLITICAS = {
+    "local": ("LOCAL", "só a GPU do próprio ponto de acesso"),
+    "rodizio": ("AUTO", "rodízio entre as quatro GPUs"),
+    "local-primeiro": ("LOCAL_FIRST", "GPU de menor tempo estimado, com a MAN"),
+}
 
 
 def pasta_densidade(k: int) -> Path:
@@ -50,6 +62,10 @@ def pasta_escala(n: int) -> Path:
 
 def pasta_dois_servidores(politica: str, n: int) -> Path:
     return RAIZ / "dois-servidores" / politica / pasta_do_ponto("escala", n)
+
+
+def pasta_cameras(politica: str, h: int) -> Path:
+    return RAIZ / "cameras-fixas" / politica / f"{h:02d}-no-ponto-quente"
 
 
 def vram_livre(clientes_yolo: int) -> int:
@@ -373,6 +389,29 @@ def edge_devices_dois_servidores(n: int) -> str:
 """
 
 
+def edge_devices_cameras(h: int) -> str:
+    """Quatro servidores de borda iguais aos da densidade, cada um com uma RTX 3050."""
+    total = h + sum(CAMERAS_DEMAIS)
+    memoria = vram_livre(total)
+    dcs = [datacenter(i, 200 + 400 * i, 2, host_borda(True, memoria)) for i in range(4)]
+    return f"""<?xml version='1.0' encoding='utf-8'?>
+<!--
+  Quatro servidores de borda com 8 VMs de 2 núcleos e 10 000 MIPS cada, como na
+  densidade de GPU (Toczé et al., 2020, Tabela 5), um por ponto de acesso, cada
+  um com uma RTX 3050 atribuída à primeira VM. As câmeras ficam fixas: {h} no
+  ponto de acesso 0 e {", ".join(map(str, CAMERAS_DEMAIS))} nos demais.
+  Memória livre de cada GPU: 6144 − {total} × 416 = {memoria} MB. Adota-se o mesmo
+  valor nas três políticas: no rodízio e na escolha pelo menor tempo estimado,
+  qualquer câmera pode ser atendida por qualquer GPU.
+  Arquivo gerado por experimentos/gerar_configs.py.
+-->
+<edge_devices>
+
+{"".join(dcs)}
+</edge_devices>
+"""
+
+
 # =============================================================================
 
 def escrever(pasta: Path, config: str, apps: str, edge: str) -> None:
@@ -429,6 +468,26 @@ mobility_static_wlan_id=0
                                        extra=extra + chave),
                      applications_yolo(),
                      edge_devices_dois_servidores(n))
+
+    # Câmeras fixas em quatro pontos de acesso, com a MAN ligada; só a política varia.
+    for politica, (selecao, rotulo) in CAMERAS_POLITICAS.items():
+        for h in CAMERAS_H:
+            por_ponto = [h] + CAMERAS_DEMAIS
+            extra = f"""
+# Rede metropolitana entre os servidores; câmeras fixas, por ponto de acesso (wlan_id 0 a 3).
+man_enabled=true
+mobility_static_devices_per_wlan={",".join(map(str, por_ponto))}
+
+# Escolha da GPU: {rotulo}.
+edge_vm_selection={selecao}
+"""
+            escrever(pasta_cameras(politica, h),
+                     config_properties(f"Câmeras fixas: {h} câmeras YOLO no ponto quente e "
+                                       f"{sum(CAMERAS_DEMAIS)} nos demais, {rotulo}.",
+                                       sum(por_ponto), nuvem_escala,
+                                       chegada_periodica_global=True, extra=extra),
+                     applications_yolo(),
+                     edge_devices_cameras(h))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!--
+  Carga exclusiva de YOLO: todos os dispositivos são clientes de detecção de objetos.
+  Arquivo gerado por experimentos/gerar_configs.py.
+-->
+<applications>
+
+    <!-- Detecção de objetos YOLO sobre quadros de 640x480 a 30 fps
+         (Rodrigues et al., 2026, Tabela 2). -->
+    <application name="YOLO_DETECTION">
+        <usage_percentage>100</usage_percentage>
+        <!-- O orquestrador GPU não amostra este campo. -->
+        <prob_cloud_selection>0</prob_cloud_selection>
+        <delay_sensitivity>0.95</delay_sensitivity>
+        <!-- Orçamento de 100 ms da realidade aumentada. Não é imposto pelo motor:
+             nenhuma tarefa falha por excedê-lo; a comparação é feita na análise. -->
+        <max_delay_requirement>0.1</max_delay_requirement>
+        <!-- Intervalo entre quadros, em s. Com chegada periódica, é o período fixo
+             de 33 ms, e não a média de um processo de Poisson. -->
+        <poisson_interarrival>0.033</poisson_interarrival>
+        <!-- Fluxo contínuo: ativo durante toda a simulação, em s. -->
+        <active_period>3600</active_period>
+        <idle_period>1</idle_period>
+        <!-- Pré e pós-processamento em CPU, em MI. -->
+        <task_length>50</task_length>
+        <required_core>1</required_core>
+        <!-- Quadro enviado e quadro anotado, em KB: médias das distribuições
+             Johnson SU de subida (94,20 KB) e de descida (104,56 KB). -->
+        <data_upload>94</data_upload>
+        <data_download>105</data_download>
+        <!-- Inferência, em MI: 91 MI / 22 750 MI/s = 4 ms na RTX 3050. -->
+        <gpu_length>91</gpu_length>
+        <!-- Memória de trabalho por quadro, em MB. Valor adotado sem fonte externa;
+             os 416 MB por cliente do modelo residente são descontados da GPU em
+             edge_devices.xml. Junto com a memória livre, define quantos quadros
+             podem estar em processamento. -->
+        <gpu_memory>20</gpu_memory>
+        <!-- Volume transferido pelo barramento PCIe, em MB. -->
+        <gpu_input_data>1</gpu_input_data>
+        <gpu_output_data>1</gpu_output_data>
+        <vm_utilization_on_edge>0</vm_utilization_on_edge>
+        <vm_utilization_on_cloud>0</vm_utilization_on_cloud>
+        <vm_utilization_on_mobile>0</vm_utilization_on_mobile>
+    </application>
+
+</applications>
