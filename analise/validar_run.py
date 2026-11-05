@@ -112,7 +112,7 @@ def validar(codigo_ponto: str, pasta: Path, inicio: float) -> dict:
     pasta = Path(os.path.abspath(pasta))
     seed = pasta.name.rsplit("seed", 1)[-1]
     r = {"seed": int(seed) if seed.isdigit() else "", "status": "FAIL", "notas": [],
-         "hashes": {}, "output_dir": os.path.relpath(pasta, config.REPO_ROOT)}
+         "hashes": {}, "output_dir": Path(os.path.relpath(pasta, config.REPO_ROOT)).as_posix()}
 
     arquivos = localizar_arquivos(pasta)
     ausentes = [k for k, v in arquivos.items() if v is None or v.stat().st_size == 0]

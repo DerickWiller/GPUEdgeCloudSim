@@ -13,5 +13,5 @@ resolver_ponto "${1:-N01}"
 bash "$RAIZ/execucao/compilar.sh"
 INICIO=$(date +%s)
 SAIDA=$(bash "$RAIZ/execucao/rodar_simulacao.sh" "$PONTO" "${2:-1}" | tail -1)
-python3 "$RAIZ/analise/validar_run.py" --ponto "$PONTO" --output-dir "$SAIDA" \
+"$PYTHON" "$RAIZ/analise/validar_run.py" --ponto "$PONTO" --output-dir "$SAIDA" \
     --start-time "$INICIO"

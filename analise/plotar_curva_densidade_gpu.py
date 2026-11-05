@@ -37,7 +37,7 @@ MINIMO_FISICO_MS = 4.0
 
 def parse_generic(arq):
     """Layout de SimLogger.java:866-941; a 1a linha de dados é o total."""
-    linhas = [l for l in arq.read_text().splitlines() if not l.startswith("#")]
+    linhas = [l for l in arq.read_text(encoding="utf-8").splitlines() if not l.startswith("#")]
     if len(linhas) < 5:
         return None
     t = linhas[0].split(";")
@@ -122,7 +122,7 @@ def coletar():
 def salvar_csv(linhas):
     SAIDA.mkdir(parents=True, exist_ok=True)
     destino = SAIDA / "curva_densidade_gpu.csv"
-    with open(destino, "w", newline="") as f:
+    with open(destino, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=list(linhas[0].keys()))
         w.writeheader()
         w.writerows(linhas)

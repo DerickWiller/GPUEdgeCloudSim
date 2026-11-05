@@ -1,0 +1,3 @@
+# Scripts de shell com fim de linha LF também em clones no Windows (core.autocrlf=true),
+# para que funcionem no Git Bash e no WSL.
+*.sh text eol=lf

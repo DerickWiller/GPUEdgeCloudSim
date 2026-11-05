@@ -10,6 +10,25 @@ podem ser chamados de qualquer diretório.
   (`pip install -r requirements.txt`).
 - Cerca de 2 GB de memória por simulação em execução.
 
+### Windows
+
+Os scripts de `execucao/` rodam no Git Bash (Git for Windows), com o Java e o Python do
+Windows; os comandos deste guia são os mesmos, com `python` no lugar de `python3` quando
+este for só o atalho da Microsoft Store. Diferenças já tratadas no repositório:
+
+- o classpath usa `;` e caminhos no formato `C:/...` (`execucao/_comum.sh`);
+- nos scripts, o interpretador é `python` quando `python3` não executa;
+- o simulador grava o console em UTF-8 e com ponto decimal, independentemente do idioma do
+  sistema, e a análise lê e grava os arquivos em UTF-8;
+- as saídas do simulador terminam as linhas com LF (`-Dline.separator`), e os caminhos
+  gravados em manifestos e métricas usam `/`, de modo que os arquivos são iguais aos do
+  Linux;
+- os `.sh` são mantidos com fim de linha LF (`.gitattributes`), mesmo com
+  `core.autocrlf=true`. Se um clone tiver os `.sh` com CRLF, `git add --renormalize .` e um
+  novo checkout desses arquivos corrigem o fim de linha.
+
+Uma bateria de N01 (sementes 1 a 30) no Windows reproduz o `metrics_runs.csv` publicado.
+
 ## Identificação dos pontos
 
 Cada ponto experimental tem um código curto, usado por todos os scripts:

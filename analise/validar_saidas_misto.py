@@ -34,7 +34,7 @@ TOL_ABS_MS = 0.05   # 0,05 ms de folga absoluta em tempos
 
 def ler_properties(caminho):
     d = {}
-    for linha in caminho.read_text().splitlines():
+    for linha in caminho.read_text(encoding="utf-8").splitlines():
         linha = linha.strip()
         if not linha or linha.startswith("#") or "=" not in linha:
             continue
@@ -123,7 +123,7 @@ def ler_parametros(ponto):
 def _parse_generic(arq):
     """Formato do SimLogger: usam-se as 4 primeiras linhas de dados (total, borda,
     nuvem e dispositivo), presentes tanto no ALL_APPS quanto nos arquivos por aplicação."""
-    linhas = [l for l in arq.read_text().splitlines() if not l.startswith("#")]
+    linhas = [l for l in arq.read_text(encoding="utf-8").splitlines() if not l.startswith("#")]
     if len(linhas) < 5:
         return None
     c = [campo.split(";") for campo in linhas]
@@ -446,7 +446,7 @@ def escrever_markdown(rel, caminho, ponto, p, runs):
     L += ["", "## Checagens", "", "| | Status | Detalhe |", "|---|---|---|"]
     for s, t, d in rel.itens:
         L.append(f"| {t} | {s} | {d} |")
-    caminho.write_text("\n".join(L) + "\n")
+    caminho.write_text("\n".join(L) + "\n", encoding="utf-8")
     print(f"Relatório: {caminho}")
 
 

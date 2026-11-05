@@ -184,7 +184,7 @@ def extract_metrics_from_run(run_dir: Path, run_id: int, seed: int,
     config_file = run_dir / "config.properties"
     if config_file.exists():
         try:
-            with open(config_file, "r") as f:
+            with open(config_file, "r", encoding="utf-8") as f:
                 for line in f:
                     if line.startswith("simulation_time="):
                         simulation_time = float(line.split("=")[1].split("#")[0].strip())
@@ -214,7 +214,7 @@ def extract_metrics_from_run(run_dir: Path, run_id: int, seed: int,
         "total_tasks": total,
         "simulation_time": simulation_time,
         "effective_time": effective_time,
-        "output_dir": os.path.relpath(run_dir, config.REPO_ROOT),
+        "output_dir": Path(os.path.relpath(run_dir, config.REPO_ROOT)).as_posix(),
     }
 
 
@@ -235,7 +235,7 @@ def load_validated_runs(manifest_csv: Path) -> List[Dict]:
         print(f"ERRO: Manifest não encontrado: {manifest_csv}")
         return []
     runs = []
-    with open(manifest_csv, "r") as f:
+    with open(manifest_csv, "r", encoding="utf-8") as f:
         for row in csv.DictReader(f):
             if row["status"] == "OK":
                 runs.append({
@@ -319,7 +319,7 @@ def main() -> int:
                   "throughput", "failure_rate",
                   "completed_tasks", "failed_tasks", "total_tasks",
                   "simulation_time", "effective_time", "output_dir"]
-    with open(metrics_runs_csv, "w", newline="") as f:
+    with open(metrics_runs_csv, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(all_metrics)
@@ -362,7 +362,7 @@ def main() -> int:
             "completed": _avg(rows, "completed"),
         })
     if app_rows:
-        with open(metrics_by_app_csv, "w", newline="") as f:
+        with open(metrics_by_app_csv, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=list(app_rows[0].keys()))
             writer.writeheader()
             writer.writerows(app_rows)
@@ -402,7 +402,7 @@ def main() -> int:
         summary["latency_vs_deadline_ratio"] = latency_mean / deadline_ms
         summary["deadline_met_by_mean"] = latency_mean <= deadline_ms
 
-    with open(metrics_summary_csv, "w", newline="") as f:
+    with open(metrics_summary_csv, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=list(summary.keys()))
         writer.writeheader()
         writer.writerow(summary)
