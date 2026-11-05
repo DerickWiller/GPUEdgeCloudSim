@@ -133,6 +133,11 @@ A rede metropolitana entre servidores de borda é ligada com `man_enabled=true` 
 configurações dos experimentos publicados. Os validadores conferem o atraso de rede como
 piso (WLAN + PCIe); o termo da MAN ainda não tem checagem analítica.
 
+Duas chaves servem ao experimento de dois servidores (`docs/modelo.md`, seções 4 e 5):
+`mobility_static_wlan_id=<id>` fixa todos os dispositivos num ponto de acesso, e
+`edge_vm_selection=LOCAL` restringe a escolha às VMs do servidor desse ponto de acesso.
+Ausentes, valem a mobilidade nômade e o critério da topologia.
+
 ## Cuidados na análise
 
 - **Média não é distribuição.** O SIMRESULT traz médias; percentis e CDF por tarefa

@@ -95,7 +95,7 @@ public class GpuEdgeOrchestrator extends EdgeOrchestrator {
             for (Datacenter datacenter : SimManager.getInstance()
                                                    .getEdgeServerManager()
                                                    .getDatacenterList()) {
-                if (hasAvailableGpu(datacenter, gpuTask)) {
+                if (!isOutsideLocalServer(datacenter, gpuTask) && hasAvailableGpu(datacenter, gpuTask)) {
                     return SimSettings.GENERIC_EDGE_DEVICE_ID;
                 }
             }
@@ -114,7 +114,7 @@ public class GpuEdgeOrchestrator extends EdgeOrchestrator {
         double bestScore = Double.MAX_VALUE;
 
         for (Datacenter datacenter : edgeDatacenters) {
-            if (!hasAvailableGpu(datacenter, gpuTask)) {
+            if (isOutsideLocalServer(datacenter, gpuTask) || !hasAvailableGpu(datacenter, gpuTask)) {
                 continue;
             }
 
@@ -166,6 +166,10 @@ public class GpuEdgeOrchestrator extends EdgeOrchestrator {
         int hostIndex = 0;
         for (Datacenter datacenter : edgeDatacenters) {
             for (Host host : datacenter.getHostList()) {
+                if (isOutsideLocalServer(host, gpuTask)) {
+                    hostIndex++;
+                    continue;
+                }
                 List<? extends EdgeVM> vmList =
                     edgeServerManager.getVmList(hostIndex);
 
@@ -236,6 +240,25 @@ public class GpuEdgeOrchestrator extends EdgeOrchestrator {
         }
 
         return bestVm;
+    }
+
+    /**
+     * Com edge_vm_selection=LOCAL, só servem as VMs do servidor que atende o ponto de acesso
+     * de submissão da tarefa; as demais são ignoradas, e não há envio pela MAN.
+     */
+    private boolean isOutsideLocalServer(Host host, Task task) {
+        return SimSettings.getInstance().isLocalEdgeVmSelection()
+                && !GpuEdgeHost.servesAccessPoint(host, task.getSubmittedLocation());
+    }
+
+    /** O datacenter fica fora da seleção só local quando nenhum dos seus hosts é local. */
+    private boolean isOutsideLocalServer(Datacenter datacenter, Task task) {
+        for (Host host : datacenter.getHostList()) {
+            if (!isOutsideLocalServer(host, task)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /** Uma tarefa requer GPU quando sua aplicação tem gpu_length &gt; 0 (índice 14 da tabela). */
@@ -314,6 +337,10 @@ public class GpuEdgeOrchestrator extends EdgeOrchestrator {
         int hostIndex = 0;
         for (Datacenter datacenter : edgeDatacenters) {
             for (Host host : datacenter.getHostList()) {
+                if (isOutsideLocalServer(host, gpuTask)) {
+                    hostIndex++;
+                    continue;
+                }
                 List<? extends EdgeVM> vmList = edgeServerManager.getVmList(hostIndex);
                 if (vmList == null) {
                     hostIndex++;

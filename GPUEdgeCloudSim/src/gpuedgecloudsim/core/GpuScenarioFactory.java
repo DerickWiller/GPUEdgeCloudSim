@@ -3,6 +3,7 @@ package gpuedgecloudsim.core;
 import edu.boun.edgecloudsim.cloud_server.CloudServerManager;
 import edu.boun.edgecloudsim.cloud_server.DefaultCloudServerManager;
 import edu.boun.edgecloudsim.core.ScenarioFactory;
+import edu.boun.edgecloudsim.core.SimSettings;
 import edu.boun.edgecloudsim.edge_client.MobileDeviceManager;
 import edu.boun.edgecloudsim.edge_client.mobile_processing_unit.DefaultMobileServerManager;
 import edu.boun.edgecloudsim.edge_client.mobile_processing_unit.MobileServerManager;
@@ -16,6 +17,7 @@ import edu.boun.edgecloudsim.task_generator.LoadGeneratorModel;
 import gpuedgecloudsim.edge_client.GpuMobileDeviceManager;
 import gpuedgecloudsim.edge_orchestrator.GpuEdgeOrchestrator;
 import gpuedgecloudsim.edge_server.GpuEdgeServerManager;
+import gpuedgecloudsim.mobility.StaticMobility;
 import gpuedgecloudsim.network.GpuNetworkModel;
 import gpuedgecloudsim.task_generator.GpuLoadGeneratorModel;
 
@@ -53,6 +55,9 @@ public class GpuScenarioFactory implements ScenarioFactory {
     
     @Override
     public MobilityModel getMobilityModel() {
+        if (SimSettings.getInstance().getStaticMobilityWlanId() >= 0) {
+            return new StaticMobility(numOfMobileDevice, simulationTime);
+        }
         return new NomadicMobility(numOfMobileDevice, simulationTime);
     }
     

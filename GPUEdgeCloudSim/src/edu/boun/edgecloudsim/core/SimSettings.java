@@ -98,6 +98,14 @@ public class SimSettings {
 	// propagação lan_internal_delay. Padrão: false, todos os servidores equivalentes ao local.
 	private boolean MAN_ENABLED;
 
+	// mobility_static_wlan_id: todos os dispositivos ficam fixos no ponto de acesso indicado
+	// (StaticMobility). Padrão: -1, mobilidade nômade do EdgeCloudSim.
+	private int STATIC_MOBILITY_WLAN_ID;
+
+	// edge_vm_selection: LOCAL restringe a escolha às VMs do servidor que atende o ponto de
+	// acesso do dispositivo. Padrão: AUTO, critério definido pela topologia da borda.
+	private String EDGE_VM_SELECTION;
+
 	// Mobile device configuration parameters
 	private int MIN_NUM_OF_MOBILE_DEVICES;
 	private int MAX_NUM_OF_MOBILE_DEVICES;
@@ -221,6 +229,11 @@ public class SimSettings {
 			WLAN_CONTENTION_ENABLED = Boolean.parseBoolean(prop.getProperty("wlan_contention_enabled", "false"));
 			WLAN_BUFFER_SIZE_KB = Double.parseDouble(prop.getProperty("wlan_buffer_size_kb", "0"));
 			MAN_ENABLED = Boolean.parseBoolean(prop.getProperty("man_enabled", "false"));
+			STATIC_MOBILITY_WLAN_ID = Integer.parseInt(prop.getProperty("mobility_static_wlan_id", "-1"));
+			EDGE_VM_SELECTION = prop.getProperty("edge_vm_selection", "AUTO").trim().toUpperCase();
+			if (!EDGE_VM_SELECTION.equals("AUTO") && !EDGE_VM_SELECTION.equals("LOCAL")) {
+				throw new IllegalArgumentException("edge_vm_selection deve ser AUTO ou LOCAL");
+			}
 
 			MIN_NUM_OF_MOBILE_DEVICES = Integer.parseInt(prop.getProperty("min_number_of_mobile_devices"));
 			MAX_NUM_OF_MOBILE_DEVICES = Integer.parseInt(prop.getProperty("max_number_of_mobile_devices"));
@@ -404,6 +417,18 @@ public class SimSettings {
 	public double getWlanBufferSizeKB()
 	{
 		return WLAN_BUFFER_SIZE_KB;
+	}
+
+	/** Ponto de acesso fixo de todos os dispositivos; -1 indica mobilidade nômade. */
+	public int getStaticMobilityWlanId()
+	{
+		return STATIC_MOBILITY_WLAN_ID;
+	}
+
+	/** Indica se a escolha de VM se restringe ao servidor do ponto de acesso do dispositivo. */
+	public boolean isLocalEdgeVmSelection()
+	{
+		return EDGE_VM_SELECTION.equals("LOCAL");
 	}
 
 	/** Indica se a tarefa executada em servidor de borda não local atravessa a MAN. */

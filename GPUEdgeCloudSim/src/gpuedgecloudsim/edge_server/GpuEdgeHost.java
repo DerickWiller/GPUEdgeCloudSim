@@ -3,6 +3,7 @@ package gpuedgecloudsim.edge_server;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.cloudbus.cloudsim.Host;
 import org.cloudbus.cloudsim.Pe;
 import org.cloudbus.cloudsim.Vm;
 import org.cloudbus.cloudsim.VmScheduler;
@@ -10,6 +11,7 @@ import org.cloudbus.cloudsim.provisioners.BwProvisioner;
 import org.cloudbus.cloudsim.provisioners.RamProvisioner;
 
 import edu.boun.edgecloudsim.edge_server.EdgeHost;
+import edu.boun.edgecloudsim.utils.Location;
 
 /**
  * Host de borda com um conjunto de GPUs, além dos recursos de CPU, memória e rede do
@@ -202,5 +204,18 @@ public class GpuEdgeHost extends EdgeHost {
         return String.format("GpuEdgeHost[id=%d, cpus=%d, gpus=%d, location=%s]",
                            getId(), getNumberOfPes(), getNumberOfGpus(),
                            getLocation() != null ? getLocation().toString() : "unknown");
+    }
+
+    /**
+     * Indica se o host atende o ponto de acesso da localização dada, critério único de
+     * servidor local para o orquestrador e para o roteamento pela MAN. Localização
+     * desconhecida, do host ou da tarefa, não conta como local.
+     */
+    public static boolean servesAccessPoint(Host host, Location location) {
+        if (!(host instanceof EdgeHost) || location == null) {
+            return false;
+        }
+        Location hostLocation = ((EdgeHost) host).getLocation();
+        return hostLocation != null && hostLocation.getServingWlanId() == location.getServingWlanId();
     }
 }

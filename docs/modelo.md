@@ -109,7 +109,9 @@ sentidos, e não junto da GPU remota: o atraso total é o mesmo, muda só a orde
 (na subida, a MAN começa t_PCIe depois; na descida, a WLAN começa t_PCIe antes). No
 SIMRESULT, t_PCIe aparece no atraso da WLAN, como no caminho local. (iv) A mobilidade
 não causa falha: o resultado é entregue mesmo que o dispositivo tenha mudado de ponto de
-acesso durante a execução.
+acesso durante a execução. (v) As transferências recusadas por saturação também entram na
+estimativa de λ do intervalo seguinte, como no `sample_app4`: sob carga oferecida acima de
+μ, o enlace permanece saturado até a carga cair, mesmo sem transmitir.
 
 **Simplificação.** Não há enlace com a nuvem (WAN) para as tarefas de GPU, e os
 parâmetros `wan_*` do `config.properties` não têm efeito sobre elas. Com
@@ -138,6 +140,11 @@ antes de iniciar o gerador. As distribuições do commons-math3 recebem geradore
 dessa semente; sem isso, seriam semeadas pelo relógio. A mesma semente reproduz, portanto,
 a mesma execução.
 
+**Mobilidade estática.** Com `mobility_static_wlan_id`, todos os dispositivos ficam, durante
+toda a simulação, no ponto de acesso indicado, em vez de circular entre os pontos de acesso
+como na mobilidade nômade do EdgeCloudSim (Sonmez et al., 2018). Serve para isolar o efeito
+da escolha do servidor do efeito do deslocamento dos usuários.
+
 **Prazo.** `max_delay_requirement` (100 ms) é lido, mas não é imposto: nenhuma tarefa
 falha por excedê-lo. A comparação com o prazo é feita na análise.
 
@@ -155,10 +162,16 @@ A política configurada em `orchestrator_policies` não altera a escolha da VM; 
 compõe o nome dos arquivos de saída.
 
 O rodízio não considera a localização do dispositivo. Com a MAN habilitada, a fração de
-quadros que a atravessam é, portanto, 1 − 1/K para um usuário que circula entre as K
-GPUs estando num ponto de acesso com GPU, e 1 para quem está num ponto de acesso sem GPU. Com chegada periódica, porém, a ordem dos quadros se repete a cada período: se o
-número de clientes de GPU é múltiplo de K, cada cliente recebe sempre a mesma GPU, e a
-fração passa a depender só de onde o cliente está em relação a ela.
+quadros que a atravessam é, portanto, 1 − 1/K para um usuário que circula entre as K GPUs
+estando num ponto de acesso com GPU, e 1 para quem está num ponto de acesso sem GPU. Com
+chegada periódica, porém, a ordem dos quadros se repete a cada período: se o número de
+clientes de GPU é múltiplo de K, cada cliente recebe sempre a mesma GPU, e a fração passa
+a depender só de onde o cliente está em relação a ela.
+
+**Seleção só local.** Com `edge_vm_selection=LOCAL`, os dois casos acima se restringem às
+VMs do servidor que atende o ponto de acesso de submissão da tarefa: nenhuma tarefa
+atravessa a MAN, e, sem VM local com memória livre, a tarefa é rejeitada por capacidade,
+mesmo que outro servidor esteja ocioso. O padrão, `AUTO`, é o critério da topologia.
 
 ## 6. Infraestrutura
 
@@ -167,6 +180,9 @@ fração passa a depender só de onde o cliente está em relação a ela.
   Os K primeiros servidores recebem uma RTX 3050, atribuída a uma de suas VMs.
 - **Escala de clientes:** um servidor com uma RTX 3050 e uma VM que a utiliza, como no
   ambiente de Rodrigues et al. (2026).
+- **Dois servidores:** dois servidores iguais aos da densidade, ambos com uma RTX 3050, e
+  todos os clientes fixos no ponto de acesso do primeiro, com a MAN habilitada. Compara o
+  rodízio entre as duas GPUs, que paga a MAN em metade dos quadros, com a seleção só local.
 
 ## 7. Parâmetros sem fonte externa
 

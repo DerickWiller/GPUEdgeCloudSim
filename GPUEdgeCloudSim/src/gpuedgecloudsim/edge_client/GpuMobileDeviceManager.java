@@ -17,6 +17,7 @@ import edu.boun.edgecloudsim.utils.SimLogger;
 import edu.boun.edgecloudsim.utils.TaskProperty;
 
 import gpuedgecloudsim.edge_client.GpuTask;
+import gpuedgecloudsim.edge_server.GpuEdgeHost;
 
 /**
  * Ciclo de vida da tarefa no dispositivo: criação da GpuTask, consulta ao orquestrador,
@@ -268,14 +269,9 @@ public class GpuMobileDeviceManager extends MobileDeviceManager {
      * wlan_id da sua localização.
      */
     private boolean isServedByRemoteEdge(GpuTask gpuTask, Vm targetVm) {
-        if (!SimSettings.getInstance().isManEnabled()
-                || !(targetVm.getHost() instanceof EdgeHost)
-                || gpuTask.getSubmittedLocation() == null) {
-            return false;
-        }
-        Location hostLocation = ((EdgeHost) targetVm.getHost()).getLocation();
-        return hostLocation != null
-                && hostLocation.getServingWlanId() != gpuTask.getSubmittedLocation().getServingWlanId();
+        return SimSettings.getInstance().isManEnabled()
+                && targetVm.getHost() instanceof EdgeHost
+                && !GpuEdgeHost.servesAccessPoint(targetVm.getHost(), gpuTask.getSubmittedLocation());
     }
 
     /**
