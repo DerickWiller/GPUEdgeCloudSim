@@ -29,7 +29,7 @@ TOL_REL = 0.02      # 2% para comparações com modelo teórico
 
 def ler_properties(caminho):
     d = {}
-    for linha in caminho.read_text().splitlines():
+    for linha in caminho.read_text(encoding="utf-8").splitlines():
         linha = linha.strip()
         if not linha or linha.startswith("#") or "=" not in linha:
             continue
@@ -88,7 +88,7 @@ def ler_simresult(run_dir):
     arquivos = list(run_dir.glob("SIMRESULT_*ALL_APPS_GENERIC.log"))
     if not arquivos:
         return None
-    linhas = [l for l in arquivos[0].read_text().splitlines() if not l.startswith("#")]
+    linhas = [l for l in arquivos[0].read_text(encoding="utf-8").splitlines() if not l.startswith("#")]
     if len(linhas) < 6:
         return None
 
@@ -418,7 +418,7 @@ def escrever_markdown(rel, caminho, ponto, params, runs):
         linhas.append(f"| {marca} | {t} | {d} |")
     linhas += ["", f"**Falhas: {rel.n_falhas}**", ""]
     caminho.parent.mkdir(parents=True, exist_ok=True)
-    caminho.write_text("\n".join(linhas))
+    caminho.write_text("\n".join(linhas), encoding="utf-8")
     print(f"\nRelatório salvo em: {caminho}")
 
 
