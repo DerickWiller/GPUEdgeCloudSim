@@ -102,8 +102,14 @@ public class SimSettings {
 	// (StaticMobility). Padrão: -1, mobilidade nômade do EdgeCloudSim.
 	private int STATIC_MOBILITY_WLAN_ID;
 
+	// mobility_static_devices_per_wlan: número de dispositivos fixos em cada ponto de acesso,
+	// na ordem dos wlan_id (0, 1, ...); a soma deve igualar o número de dispositivos. Tem
+	// precedência sobre mobility_static_wlan_id. Padrão: vazio.
+	private int[] STATIC_MOBILITY_DEVICES_PER_WLAN;
+
 	// edge_vm_selection: LOCAL restringe a escolha às VMs do servidor que atende o ponto de
-	// acesso do dispositivo. Padrão: AUTO, critério definido pela topologia da borda.
+	// acesso do dispositivo; LOCAL_FIRST escolhe a GPU de menor tempo estimado de conclusão,
+	// somando a MAN às remotas. Padrão: AUTO, critério definido pela topologia da borda.
 	private String EDGE_VM_SELECTION;
 
 	// Mobile device configuration parameters
@@ -230,13 +236,32 @@ public class SimSettings {
 			WLAN_BUFFER_SIZE_KB = Double.parseDouble(prop.getProperty("wlan_buffer_size_kb", "0"));
 			MAN_ENABLED = Boolean.parseBoolean(prop.getProperty("man_enabled", "false"));
 			STATIC_MOBILITY_WLAN_ID = Integer.parseInt(prop.getProperty("mobility_static_wlan_id", "-1"));
+			String perWlan = prop.getProperty("mobility_static_devices_per_wlan", "").trim();
+			STATIC_MOBILITY_DEVICES_PER_WLAN = perWlan.isEmpty() ? new int[0]
+					: java.util.Arrays.stream(perWlan.split(",")).map(String::trim)
+							.mapToInt(Integer::parseInt).toArray();
 			EDGE_VM_SELECTION = prop.getProperty("edge_vm_selection", "AUTO").trim().toUpperCase();
-			if (!EDGE_VM_SELECTION.equals("AUTO") && !EDGE_VM_SELECTION.equals("LOCAL")) {
-				throw new IllegalArgumentException("edge_vm_selection deve ser AUTO ou LOCAL");
+			if (!EDGE_VM_SELECTION.equals("AUTO") && !EDGE_VM_SELECTION.equals("LOCAL")
+					&& !EDGE_VM_SELECTION.equals("LOCAL_FIRST")) {
+				throw new IllegalArgumentException("edge_vm_selection deve ser AUTO, LOCAL ou LOCAL_FIRST");
 			}
 
 			MIN_NUM_OF_MOBILE_DEVICES = Integer.parseInt(prop.getProperty("min_number_of_mobile_devices"));
 			MAX_NUM_OF_MOBILE_DEVICES = Integer.parseInt(prop.getProperty("max_number_of_mobile_devices"));
+			if (STATIC_MOBILITY_DEVICES_PER_WLAN.length > 0) {
+				// A repartição fixa vale para um único número de dispositivos.
+				int sum = 0;
+				for (int n : STATIC_MOBILITY_DEVICES_PER_WLAN) {
+					if (n < 0) {
+						throw new IllegalArgumentException("mobility_static_devices_per_wlan não admite valores negativos");
+					}
+					sum += n;
+				}
+				if (MIN_NUM_OF_MOBILE_DEVICES != MAX_NUM_OF_MOBILE_DEVICES || sum != MIN_NUM_OF_MOBILE_DEVICES) {
+					throw new IllegalArgumentException("mobility_static_devices_per_wlan exige min = max = soma ("
+							+ sum + ") dispositivos");
+				}
+			}
 			MOBILE_DEVICE_COUNTER_SIZE = Integer.parseInt(prop.getProperty("mobile_device_counter_size"));
 			WLAN_RANGE = Integer.parseInt(prop.getProperty("wlan_range", "0"));
 
@@ -425,10 +450,28 @@ public class SimSettings {
 		return STATIC_MOBILITY_WLAN_ID;
 	}
 
+	/** Dispositivos fixos por ponto de acesso, na ordem dos wlan_id; vazio se não configurado. */
+	public int[] getStaticMobilityDevicesPerWlan()
+	{
+		return STATIC_MOBILITY_DEVICES_PER_WLAN.clone();
+	}
+
+	/** Indica se algum modo de mobilidade estática está configurado. */
+	public boolean isStaticMobility()
+	{
+		return STATIC_MOBILITY_WLAN_ID >= 0 || STATIC_MOBILITY_DEVICES_PER_WLAN.length > 0;
+	}
+
 	/** Indica se a escolha de VM se restringe ao servidor do ponto de acesso do dispositivo. */
 	public boolean isLocalEdgeVmSelection()
 	{
 		return EDGE_VM_SELECTION.equals("LOCAL");
+	}
+
+	/** Indica se a escolha de VM minimiza o tempo estimado de conclusão, incluindo a MAN. */
+	public boolean isLocalFirstEdgeVmSelection()
+	{
+		return EDGE_VM_SELECTION.equals("LOCAL_FIRST");
 	}
 
 	/** Indica se a tarefa executada em servidor de borda não local atravessa a MAN. */

@@ -143,7 +143,11 @@ a mesma execução.
 **Mobilidade estática.** Com `mobility_static_wlan_id`, todos os dispositivos ficam, durante
 toda a simulação, no ponto de acesso indicado, em vez de circular entre os pontos de acesso
 como na mobilidade nômade do EdgeCloudSim (Sonmez et al., 2018). Serve para isolar o efeito
-da escolha do servidor do efeito do deslocamento dos usuários.
+da escolha do servidor do efeito do deslocamento dos usuários. Com
+`mobility_static_devices_per_wlan` (por exemplo, `9,2,1,1`), os dispositivos são repartidos
+em blocos consecutivos pelos pontos de acesso, na ordem dos `wlan_id`, o que representa
+câmeras fixas com carga desigual entre pontos; a soma deve ser igual ao número de
+dispositivos, e a chave tem precedência sobre `mobility_static_wlan_id`.
 
 **Prazo.** `max_delay_requirement` (100 ms) é lido, mas não é imposto: nenhuma tarefa
 falha por excedê-lo. A comparação com o prazo é feita na análise.
@@ -173,6 +177,31 @@ VMs do servidor que atende o ponto de acesso de submissão da tarefa: nenhuma ta
 atravessa a MAN, e, sem VM local com memória livre, a tarefa é rejeitada por capacidade,
 mesmo que outro servidor esteja ocioso. O padrão, `AUTO`, é o critério da topologia.
 
+**Menor tempo estimado.** Com `edge_vm_selection=LOCAL_FIRST`, a tarefa de GPU vai para a
+GPU de menor tempo estimado de conclusão, nos dois casos acima:
+
+T = (n + 1) · S + d_MAN,ida e volta,
+
+em que S = `gpu_length` / capacidade é o tempo de inferência com a GPU exclusiva (4 ms na
+RTX 3050), n é o número de tarefas à frente na VM, tratadas como se nenhuma tivesse
+progredido, e d_MAN é a soma dos atrasos de subida e
+de descida das duas filas M/M/1 da MAN, com as estimativas de λ e S do intervalo vigente;
+para a GPU do servidor local, d_MAN = 0. O trecho WLAN é comum a todas as candidatas e não
+entra na comparação. Em empate, prevalece a GPU local: a MAN só é usada quando reduz o tempo
+estimado, isto é, quando a fila local excede a remota em mais de d_MAN / S quadros (cerca de
+5 com os parâmetros adotados). A estrutura, servidor local ou vizinho, é a do orquestrador do
+`sample_app4` (Sonmez et al., 2019), com o tempo estimado no lugar da inferência fuzzy.
+
+Hipóteses e simplificações:
+
+- n soma as tarefas em execução na GPU e as já despachadas à VM que ainda atravessam a WLAN
+  ou a MAN. Sem estas, quadros submetidos em sequência veriam o mesmo estado e seriam
+  enviados em rajada à mesma GPU (efeito manada), pois o quadro leva milissegundos de WLAN
+  até chegar à GPU escolhida.
+- O orquestrador conhece o estado das GPUs e da MAN sem atraso nem custo de sinalização; as
+  estimativas de λ e S da MAN são renovadas também na consulta, para que um intervalo de
+  saturação não persista quando o orquestrador deixa de usar a MAN.
+
 ## 6. Infraestrutura
 
 - **Densidade de GPU:** 14 servidores de borda com 8 VMs de 2 núcleos a 10 000 MIPS e
@@ -183,6 +212,14 @@ mesmo que outro servidor esteja ocioso. O padrão, `AUTO`, é o critério da top
 - **Dois servidores:** dois servidores iguais aos da densidade, ambos com uma RTX 3050, e
   todos os clientes fixos no ponto de acesso do primeiro, com a MAN habilitada. Compara o
   rodízio entre as duas GPUs, que paga a MAN em metade dos quadros, com a seleção só local.
+- **Câmeras fixas:** quatro servidores iguais aos da densidade, um por ponto de acesso, cada
+  um com uma RTX 3050, e a MAN habilitada. As câmeras são clientes YOLO fixos: h no ponto
+  de acesso 0 (ponto quente) e 2, 1 e 1 nos demais, com h ∈ {2, 4, 6, 8, 9}. O limite de 9
+  câmeras por ponto mantém a WLAN abaixo da saturação (9,95 clientes), e o total de até 13,
+  memória livre em cada GPU (6144 − 13 × 416 = 736 MB). A memória livre é a mesma nas três
+  políticas comparadas (só local, rodízio e menor tempo estimado), pois nas duas últimas
+  qualquer câmera pode ser atendida por qualquer GPU. O cenário representa câmeras de
+  análise de vídeo em cruzamentos, aplicação típica de borda (Ananthanarayanan et al., 2017).
 
 ## 7. Parâmetros sem fonte externa
 
@@ -215,6 +252,9 @@ a memória por quadro estaria sendo cobrada duas vezes.
 
 ## Referências
 
+- Ananthanarayanan, G.; Bahl, P.; Bodík, P.; Chintalapudi, K.; Philipose, M.;
+  Ravindranath, L.; Sinha, S. *Real-Time Video Analytics: The Killer App for Edge
+  Computing*. IEEE Computer, 2017.
 - PCI-SIG. *PCI Express Base Specification, Revision 3.0*, 2010.
 - Rodrigues, K. C.; Cardoso, K. V.; Correa, S. L. *Characterization of Mobile Augmented
   Reality Tasks Supported by Edge Computing Resources*. SBRC, 2026.

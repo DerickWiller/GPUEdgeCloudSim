@@ -64,6 +64,7 @@ public class GpuDatacenter extends Datacenter {
             // gpu_length > 0, para que as tarefas de CPU consumam a CPU da VM.
             if (cloudlet instanceof GpuTask && ((GpuTask) cloudlet).getGpuLength() > 0) {
                 GpuTask gpuTask = (GpuTask) cloudlet;
+                gpuTask.endTransit();
 
                 Host host = getVmAllocationPolicy().getHost(cloudlet.getVmId(), cloudlet.getUserId());
                 if (host != null) {

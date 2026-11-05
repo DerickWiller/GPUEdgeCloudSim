@@ -18,6 +18,7 @@ import edu.boun.edgecloudsim.utils.TaskProperty;
 
 import gpuedgecloudsim.edge_client.GpuTask;
 import gpuedgecloudsim.edge_server.GpuEdgeHost;
+import gpuedgecloudsim.edge_server.GpuEdgeVM;
 
 /**
  * Ciclo de vida da tarefa no dispositivo: criação da GpuTask, consulta ao orquestrador,
@@ -181,6 +182,9 @@ public class GpuMobileDeviceManager extends MobileDeviceManager {
         // O GpuDatacenter localiza o host pelo campo vmId do Cloudlet.
         gpuTask.setVmId(targetVm.getId());
         gpuTask.setRoutedThroughMan(isServedByRemoteEdge(gpuTask, targetVm));
+        if (targetVm instanceof GpuEdgeVM && gpuTask.getGpuLength() > 0) {
+            gpuTask.startTransit((GpuEdgeVM) targetVm);
+        }
 
         SimLogger.getInstance().taskStarted(gpuTask.getCloudletId(), currentTime);
 
@@ -286,6 +290,7 @@ public class GpuMobileDeviceManager extends MobileDeviceManager {
                                                     SimSettings.GENERIC_EDGE_DEVICE_ID,
                                                     gpuTask);
         if (manDelay <= 0) {
+            gpuTask.endTransit();
             SimLogger.getInstance().rejectedDueToBandwidth(
                     gpuTask.getCloudletId(), currentTime,
                     SimSettings.VM_TYPES.EDGE_VM.ordinal(),

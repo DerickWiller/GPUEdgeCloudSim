@@ -55,7 +55,7 @@ public class GpuScenarioFactory implements ScenarioFactory {
     
     @Override
     public MobilityModel getMobilityModel() {
-        if (SimSettings.getInstance().getStaticMobilityWlanId() >= 0) {
+        if (SimSettings.getInstance().isStaticMobility()) {
             return new StaticMobility(numOfMobileDevice, simulationTime);
         }
         return new NomadicMobility(numOfMobileDevice, simulationTime);

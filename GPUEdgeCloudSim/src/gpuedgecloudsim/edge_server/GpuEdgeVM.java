@@ -19,6 +19,8 @@ public class GpuEdgeVM extends EdgeVM {
     private final boolean requiresGpu;
     private GpuCloudletScheduler gpuScheduler;
     private Gpu allocatedGpu;
+    /** Tarefas de GPU despachadas a esta VM que ainda não chegaram ao datacenter. */
+    private int tasksInTransit = 0;
 
     /**
      * @param mips         capacidade por núcleo, em MIPS
@@ -56,6 +58,23 @@ public class GpuEdgeVM extends EdgeVM {
         if (gpu != null && gpuScheduler != null) {
             gpuScheduler.initialize(gpu);
         }
+    }
+
+    /** Registra o despacho de uma tarefa de GPU que segue pela rede até esta VM. */
+    public void taskDispatched() {
+        tasksInTransit++;
+    }
+
+    /** Registra a chegada ao datacenter, ou a perda no caminho, de uma tarefa despachada. */
+    public void taskLeftTransit() {
+        if (tasksInTransit == 0) {
+            throw new IllegalStateException("VM " + getId() + ": saída de trânsito sem despacho correspondente");
+        }
+        tasksInTransit--;
+    }
+
+    public int getTasksInTransit() {
+        return tasksInTransit;
     }
 
     public GpuCloudletScheduler getGpuCloudletScheduler() {

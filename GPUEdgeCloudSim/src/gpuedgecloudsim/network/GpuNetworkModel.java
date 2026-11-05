@@ -240,7 +240,14 @@ public class GpuNetworkModel extends NetworkModel {
             refreshEstimates(CloudSim.clock());
             intervalCount++;
             intervalSizeKB += dataKB;
+            return currentDelay(dataKB);
+        }
 
+        /**
+         * Atraso pela fila com as estimativas vigentes, sem registrar a transferência;
+         * LINK_SATURATED quando lambda &ge; mu ou o atraso excede MAN_MAX_DELAY.
+         */
+        double currentDelay(double dataKB) {
             double sizeKbit = 8 * ((meanSizeKB > 0) ? meanSizeKB : dataKB);
             double serviceRate = SimSettings.getInstance().getManBandwidth() / sizeKbit;
             if (serviceRate <= arrivalRate) {
@@ -250,6 +257,25 @@ public class GpuNetworkModel extends NetworkModel {
                     + SimSettings.getInstance().getInternalLanDelay();
             return (delay > MAN_MAX_DELAY) ? LINK_SATURATED : delay;
         }
+    }
+
+    /**
+     * Atraso estimado de ida e volta pela MAN, em segundos, para os dados de subida e de
+     * descida da tarefa. Usa as estimativas do intervalo vigente sem contar a tarefa no
+     * tráfego medido, de modo que a consulta do orquestrador não altera lambda. Retorna
+     * infinito quando algum sentido está saturado.
+     */
+    public double estimateManRoundTripDelay(Task task) {
+        // Sem a renovação, um λ alto que levasse o orquestrador a evitar a MAN nunca seria
+        // reestimado, pois só as transferências efetivas renovam o intervalo.
+        manUplink.refreshEstimates(CloudSim.clock());
+        manDownlink.refreshEstimates(CloudSim.clock());
+        double up = manUplink.currentDelay(task.getCloudletFileSize());
+        double down = manDownlink.currentDelay(task.getCloudletOutputSize());
+        if (up == LINK_SATURATED || down == LINK_SATURATED) {
+            return Double.POSITIVE_INFINITY;
+        }
+        return up + down;
     }
 
     /** Origem e destino genéricos de borda identificam o trecho da MAN, como no EdgeCloudSim. */

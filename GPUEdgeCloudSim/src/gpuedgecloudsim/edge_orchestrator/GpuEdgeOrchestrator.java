@@ -19,6 +19,7 @@ import gpuedgecloudsim.edge_client.GpuTask;
 import gpuedgecloudsim.edge_server.Gpu;
 import gpuedgecloudsim.edge_server.GpuEdgeHost;
 import gpuedgecloudsim.edge_server.GpuEdgeVM;
+import gpuedgecloudsim.network.GpuNetworkModel;
 
 /**
  * Orquestrador de borda com GPU. A decisão de alocação depende da topologia:
@@ -30,6 +31,8 @@ import gpuedgecloudsim.edge_server.GpuEdgeVM;
  *       escolha da VM é feita por round-robin, e a nuvem não é utilizada.</li>
  * </ul>
  * A política configurada ({@code policy}) influencia apenas o score do ramo homogêneo.
+ * Com edge_vm_selection=LOCAL_FIRST, as tarefas de GPU dos dois ramos seguem para a GPU de
+ * menor tempo estimado de conclusão, em que a GPU remota soma a ida e volta pela MAN.
  */
 public class GpuEdgeOrchestrator extends EdgeOrchestrator {
 
@@ -163,6 +166,9 @@ public class GpuEdgeOrchestrator extends EdgeOrchestrator {
 
         // hostIndex indexa getVmList e deve avançar em todos os hosts, inclusive nos
         // ignorados por não terem GPU, para manter o alinhamento entre host e lista de VMs.
+        List<GpuEdgeVM> localFirstCandidates =
+            SimSettings.getInstance().isLocalFirstEdgeVmSelection() ? new java.util.ArrayList<>() : null;
+
         int hostIndex = 0;
         for (Datacenter datacenter : edgeDatacenters) {
             for (Host host : datacenter.getHostList()) {
@@ -223,6 +229,11 @@ public class GpuEdgeOrchestrator extends EdgeOrchestrator {
                             continue;
                         }
 
+                        if (localFirstCandidates != null) {
+                            localFirstCandidates.add(gpuVm);
+                            continue;
+                        }
+
                         double cpuUtil = gpuVm.getCurrentRequestedTotalMips() /
                                        (gpuVm.getMips() * gpuVm.getNumberOfPes());
                         double gpuUtil = gpu.getUtilization() / 100.0;
@@ -239,7 +250,45 @@ public class GpuEdgeOrchestrator extends EdgeOrchestrator {
             }
         }
 
+        if (localFirstCandidates != null) {
+            return chooseLeastEstimatedCompletion(localFirstCandidates, gpuTask);
+        }
         return bestVm;
+    }
+
+    /**
+     * Seleção LOCAL_FIRST: GPU de menor (n + 1) S + d_MAN, com n as tarefas em execução e em
+     * trânsito para a VM, S = gpu_length / capacidade e d_MAN = 0 na GPU local; em empate,
+     * prevalece a local. Modelo e hipóteses em docs/modelo.md, seção 5.
+     */
+    private GpuEdgeVM chooseLeastEstimatedCompletion(List<GpuEdgeVM> candidates, GpuTask gpuTask) {
+        double manRoundTrip = 0.0;
+        if (SimSettings.getInstance().isManEnabled()
+                && SimManager.getInstance().getNetworkModel() instanceof GpuNetworkModel) {
+            manRoundTrip = ((GpuNetworkModel) SimManager.getInstance().getNetworkModel())
+                    .estimateManRoundTripDelay(gpuTask);
+        }
+
+        GpuEdgeVM best = null;
+        boolean bestIsLocal = false;
+        double bestTime = Double.POSITIVE_INFINITY;
+        for (GpuEdgeVM vm : candidates) {
+            Gpu gpu = vm.getGpu();
+            if (gpu == null || gpu.getGflops() <= 0) {
+                continue;
+            }
+            boolean local = GpuEdgeHost.servesAccessPoint(vm.getHost(), gpuTask.getSubmittedLocation());
+            int queued = vm.getGpuCloudletScheduler().getRunningGpuTaskCount()
+                    + vm.getTasksInTransit();
+            double time = (queued + 1) * gpuTask.getGpuLength() / gpu.getGflops()
+                    + (local ? 0.0 : manRoundTrip);
+            if (best == null || time < bestTime || (time == bestTime && local && !bestIsLocal)) {
+                best = vm;
+                bestIsLocal = local;
+                bestTime = time;
+            }
+        }
+        return best;
     }
 
     /**
@@ -401,6 +450,9 @@ public class GpuEdgeOrchestrator extends EdgeOrchestrator {
             return null;
         }
 
+        if (needsGpu && SimSettings.getInstance().isLocalFirstEdgeVmSelection()) {
+            return chooseLeastEstimatedCompletion(candidates, gpuTask);
+        }
         if (needsGpu) {
             GpuEdgeVM chosen = candidates.get(gpuRoundRobinIndex % candidates.size());
             gpuRoundRobinIndex++;

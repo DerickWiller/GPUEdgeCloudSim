@@ -188,6 +188,11 @@ public class GpuCloudletSchedulerTimeShared implements GpuCloudletScheduler {
     }
 
     @Override
+    public int getRunningGpuTaskCount() {
+        return runningTasks.size();
+    }
+
+    @Override
     public List<GpuTask> getWaitingGpuTasks() {
         return new ArrayList<>(waitingTasks);
     }

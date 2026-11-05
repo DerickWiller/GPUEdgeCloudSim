@@ -23,6 +23,9 @@ public interface GpuCloudletScheduler {
 
     List<GpuTask> getRunningGpuTasks();
 
+    /** Número de tarefas em execução, sem copiar a lista. */
+    int getRunningGpuTaskCount();
+
     List<GpuTask> getWaitingGpuTasks();
 
     List<GpuTask> getCompletedGpuTasks();

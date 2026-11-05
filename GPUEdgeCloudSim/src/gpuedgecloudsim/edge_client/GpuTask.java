@@ -4,6 +4,8 @@ import org.cloudbus.cloudsim.UtilizationModel;
 
 import edu.boun.edgecloudsim.edge_client.Task;
 
+import gpuedgecloudsim.edge_server.GpuEdgeVM;
+
 /**
  * Tarefa com uma parcela de processamento em CPU (cloudletLength, em MI) e outra em GPU
  * (gpuLength, também em MI), além da memória de vídeo exigida e dos volumes transferidos
@@ -35,6 +37,9 @@ public class GpuTask extends Task {
     private double gpuFinishTime;
     /** Executada em servidor de borda distinto do ponto de acesso de submissão. */
     private boolean routedThroughMan;
+
+    /** VM de destino enquanto a tarefa atravessa a rede; null após a chegada ou a perda. */
+    private GpuEdgeVM vmInTransit;
 
     public GpuTask(int mobileDeviceId, int cloudletId, long cloudletLength,
                    int pesNumber, long cloudletFileSize, long cloudletOutputSize,
@@ -176,6 +181,20 @@ public class GpuTask extends Task {
             return 0.0;
         }
         return (double) gpuLength / totalLength;
+    }
+
+    /** Marca o início do trajeto de rede até a VM de destino. */
+    public void startTransit(GpuEdgeVM vm) {
+        vmInTransit = vm;
+        vm.taskDispatched();
+    }
+
+    /** Marca o fim do trajeto, por chegada ao datacenter ou por perda; só a primeira chamada conta. */
+    public void endTransit() {
+        if (vmInTransit != null) {
+            vmInTransit.taskLeftTransit();
+            vmInTransit = null;
+        }
     }
 
     /** Não é usado pela simulação: a admissão é decidida na alocação de memória da GPU. */
