@@ -1,6 +1,6 @@
 # Validação de saídas — 1 cliente YOLO sobre 1 GPU (N01)
 
-Gerado em 2026-08-19 17:26 por `analise/validar_saidas.py`.
+Gerado em 2026-11-11 17:04 por `analise/validar_saidas.py`.
 
 ## Configuração validada
 
@@ -14,7 +14,7 @@ Gerado em 2026-08-19 17:26 por `analise/validar_saidas.py`.
 | | Checagem | Detalhe |
 |---|---|---|
 | ✓ | A1. Conservação de tarefas | completed+failed+uncompleted = 100,000 (= 1 clientes × 3300 s ÷ 0.033 s) em 30/30 runs |
-| ✓ | A2. Decomposição do FRTT (TAUTOLÓGICA) | serviceTime = processingTime + networkDelay em 30/30 runs. ⚠️ SEM PODER DE VALIDAÇÃO: `SimLogger.java:1172` define processingTime := serviceTime − networkDelay, então a identidade vale por construção. Só detecta corrupção do arquivo, não erro de modelagem. |
+| ✓ | A2. Decomposição do FRTT (tautológica) | serviceTime = processingTime + networkDelay em 30/30 runs. Sem poder de validação: o SimLogger define processingTime := serviceTime − networkDelay, então a identidade vale por construção. Só detecta corrupção do arquivo, não erro de modelagem. |
 | ✓ | A3. Causas de falha somam o total | vm_capacity + bw + mobility + wlan_range = failed em 30/30 runs |
 | ✓ | A4. Camadas somam o total | edge+cloud+mobile = completed em 30/30 runs |
 | ✓ | B1. Tempo de processamento ≥ mínimo físico | medido 4.0000 ms vs. mínimo 4.0000 ms (= gpu_length 91 MI ÷ gflops 22750 MI/s). Sem contenção: igual ao mínimo. |
@@ -23,16 +23,16 @@ Gerado em 2026-08-19 17:26 por `analise/validar_saidas.py`.
 | · | B4. Capacidade vs. demanda | capacidade 250.00 fps · chegada λ 30.30 fps · razão λ/capacidade = 0.12× (com folga) |
 | ✓ | B5. Perda condiz com vazão vs. chegada | falha medida 0.00% vs. 1 − throughput/λ = 0.00% (diferença 0.00 p.p.) |
 | ✓ | B6. Little's Law dentro do buffer de VRAM | frames em voo = 0.12 (throughput × tempo no servidor) ≤ buffer 286 frames (VRAM 5728 MB ÷ 20 MB/frame) |
-| · | B7. Inflação do tempo no servidor | tempo no servidor ÷ mínimo físico da GPU = 1.00× (4.00 ms vs. 4.00 ms). Mede fila + escalonamento + time-share juntos — o motor não expõe o tempo de GPU isolado, então esses componentes NÃO são separáveis. A ocupação real do buffer é a de B6: 0.0%. |
+| · | B7. Inflação do tempo no servidor | tempo no servidor ÷ mínimo físico da GPU = 1.00× (4.00 ms vs. 4.00 ms). Mede fila + escalonamento + time-share juntos — o motor não expõe o tempo de GPU isolado, então esses componentes não são separáveis. A ocupação real do buffer é a de B6: 0.0%. |
 | ✓ | B8. Atraso de rede ≥ piso analítico (contenção ON) | medido 4.4406746 ms vs. piso 4.4406746 ms = WLAN (94+105 KB ÷ 480 Mbps) + 2× PCIe (0.5 ms + 1 MB ÷ 15.75 GB/s). Disputa implícita = 1.000 fluxos simultâneos no AP. |
 | · | C1. Amostra | 30 runs, seeds 1–30, contíguas e sem repetição |
 | · | C2. Latência | 8.4407 ± 0.0000 ms · IC95 [8.4407, 8.4407] · CV 0.00% |
 | · | C2. Throughput | 30.3030 ± 0.0001 fps · IC95 [30.3029, 30.3030] · CV 0.00% |
 | · | C2. Falha | 0.0000 ± 0.0000 % · IC95 [0.0000, 0.0000] · CV 0.00% |
 | ✓ | C3. Independência entre seed e latência | correlação de Pearson r = -0.0232 (sem relação sistemática) |
-| · | D1. Deadline | requisito 100 ms · latência média 8.44 ms. ATENÇÃO: max_delay_requirement NUNCA é lido pelo motor — nenhuma tarefa falha por estourar o prazo. A comparação é pós-hoc e sobre a MÉDIA, não é taxa de violação. |
+| · | D1. Deadline | requisito 100 ms · latência média 8.44 ms. max_delay_requirement não é lido pelo motor — nenhuma tarefa falha por estourar o prazo. A comparação é pós-hoc e sobre a média, não é taxa de violação. |
 | · | D2. Percentis | o simulador não emite latência por tarefa, apenas a média agregada → p50/p90/p99 exigem o registro por tarefa (execucao/rodar_deeplog.sh); a partir do SIMRESULT agregado são impossíveis. Comparar a média com o p90 de um artigo é comparar grandezas diferentes. |
-| · | D3. Rede: contenção ligada | a banda do AP é repartida entre as transmissões simultâneas, então o atraso de rede DEPENDE de quantos transmitem (ver B8). Tráfego ofertado 48 Mbps · servido 48 Mbps · WLAN 480 Mbps. Buffer infinito (wlan_buffer_size_kb=0): a contenção só ATRASA, nunca descarta — nenhuma falha é por banda. |
+| · | D3. Rede: contenção ligada | a banda do AP é repartida entre as transmissões simultâneas, então o atraso de rede depende de quantos transmitem (ver B8). Tráfego ofertado 48 Mbps · servido 48 Mbps · WLAN 480 Mbps. Buffer infinito (wlan_buffer_size_kb=0): a contenção só atrasa, não descarta — nenhuma falha é por banda. |
 | · | D4. Warm-up | 300 s (8% da janela) descartados das métricas, inclusive as tarefas rejeitadas nesse intervalo, que são marcadas no instante da chegada. |
 
 **Falhas: 0**
