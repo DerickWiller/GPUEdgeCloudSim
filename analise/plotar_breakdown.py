@@ -129,7 +129,7 @@ def plotar(df: pd.DataFrame, rotulo_ponto: str, output_file):
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Gráfico de decomposição do FRTT (compute + rede) por aplicação.")
-    parser.add_argument("--ponto", required=True, choices=list(config.PONTOS),
+    parser.add_argument("--ponto", required=True, type=config.argumento_ponto,
                         help="Código do ponto (K01…K14 ou N01…N14)")
     args = parser.parse_args()
 

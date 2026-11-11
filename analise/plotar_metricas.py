@@ -152,7 +152,7 @@ def plot_line(df: pd.DataFrame, metric_col: str, ylabel: str, title: str,
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Gera gráficos da dispersão das métricas de um ponto.")
-    parser.add_argument("--ponto", required=True, choices=list(config.PONTOS),
+    parser.add_argument("--ponto", required=True, type=config.argumento_ponto,
                         help="Código do ponto (K01…K14 ou N01…N14)")
     args = parser.parse_args()
 

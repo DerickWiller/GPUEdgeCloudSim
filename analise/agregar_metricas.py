@@ -248,7 +248,7 @@ def load_validated_runs(manifest_csv: Path) -> List[Dict]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Agrega as métricas das execuções validadas de um ponto.")
-    parser.add_argument("--ponto", required=True, choices=list(config.PONTOS),
+    parser.add_argument("--ponto", required=True, type=config.argumento_ponto,
                         help="Código do ponto (K01…K14 ou N01…N14)")
     parser.add_argument("--permitir-parcial", action="store_true",
                         help="agrega mesmo que faltem pastas do manifesto nesta máquina")

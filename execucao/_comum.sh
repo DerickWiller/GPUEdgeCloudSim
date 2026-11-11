@@ -26,7 +26,8 @@ fi
 # Define SERIE, PASTA_PONTO (relativa a experimentos/) e CONFIG_DIR. A correspondência
 # entre código (K02, N08) e pasta vem de analise/config.py, fonte única.
 resolver_ponto() {
-    PONTO="${1^^}"
+    # Código curto (K02, N08) ou pasta de um ponto em experimentos/ (cameras-fixas/local/02-...).
+    if [[ "$1" =~ ^[kKnN][0-9]+$ ]]; then PONTO="${1^^}"; else PONTO="${1%/}"; fi
     PASTA_PONTO="$("$PYTHON" "$RAIZ/analise/config.py" "$PONTO")" || return 1
     SERIE="${PASTA_PONTO%%/*}"
     CONFIG_DIR="$RAIZ/experimentos/$PASTA_PONTO"

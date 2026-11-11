@@ -31,7 +31,7 @@ CAMPOS = ["run_id", "seed", "status", "output_dir", "sha256_simresult",
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Publica o manifesto de um ponto.")
-    ap.add_argument("--ponto", required=True, choices=list(config.PONTOS))
+    ap.add_argument("--ponto", required=True, type=config.argumento_ponto)
     origem = ap.add_mutually_exclusive_group(required=True)
     origem.add_argument("--lista", type=Path,
                         help="arquivo com uma pasta de execução por linha")

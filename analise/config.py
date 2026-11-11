@@ -115,8 +115,47 @@ def ponto(codigo: str) -> dict:
         if codigo in (str(p["pasta"]), str(p["pasta"].relative_to(REPO_ROOT)),
                       str(p["pasta"].relative_to(EXPERIMENTOS_DIR))):
             return p
+    pasta = Path(codigo) if Path(codigo).is_absolute() else EXPERIMENTOS_DIR / codigo
+    if not (pasta / "config.properties").is_file() and (REPO_ROOT / codigo / "config.properties").is_file():
+        pasta = REPO_ROOT / codigo
+    if (pasta / "config.properties").is_file() and EXPERIMENTOS_DIR.resolve() in pasta.resolve().parents:
+        # Pasta de ponto registrado (./densidade-gpu/02-gpus, barras do Windows): vale o código.
+        for p in PONTOS.values():
+            if p["pasta"].resolve() == pasta.resolve():
+                return p
+        return ponto_da_pasta(pasta)
     validos = ", ".join(PONTOS)
-    raise ValueError(f"Ponto inválido: {codigo}. Use um de: {validos}.")
+    raise ValueError(f"Ponto inválido: {codigo}. Use um de: {validos}, "
+                     "ou a pasta de um ponto em experimentos/.")
+
+
+def ponto_da_pasta(pasta: Path) -> dict:
+    """Ponto descrito só pela pasta de configuração, para experimentos sem código curto
+    (dois-servidores, cameras-fixas e os cenários de gerar_cenario.py)."""
+    rel = pasta.resolve().relative_to(EXPERIMENTOS_DIR.resolve()).as_posix()
+    return {
+        "nome": rel,
+        "serie": rel.split("/")[0],
+        "valor": None,
+        "rotulo": rel,
+        "rotulo_curto": rel.split("/", 1)[-1],
+        "pasta": EXPERIMENTOS_DIR / rel,
+        "experimento": EXPERIMENTOS_DIR / rel / "resultados",
+        "resultados": SAIDAS_DIR / rel,
+        "deeplog": DEEPLOG_DIR / rel,
+        "simulation_time_default": 60,
+        "cor": COR_APP_FALLBACK,
+    }
+
+
+def argumento_ponto(texto: str) -> str:
+    """Tipo de argparse para --ponto: código curto (K02) ou pasta de um ponto em experimentos/."""
+    import argparse
+    try:
+        ponto(texto)
+    except ValueError as e:
+        raise argparse.ArgumentTypeError(str(e))
+    return texto.strip().upper() if texto.strip().upper() in PONTOS else texto.strip().rstrip("/")
 
 
 def pontos_da_serie(serie: str) -> list:
