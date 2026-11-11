@@ -26,6 +26,7 @@ import numpy as np
 import pandas as pd
 
 import config
+from estatistica import semiamplitude
 
 INK = "#0b0b0b"
 INK_MUTED = "#52514e"
@@ -40,7 +41,6 @@ ESTATISTICAS = [
     ("p99",   "p99",     "#1baf7a", "D", "--"),
 ]
 ORCAMENTO_QUADRO_MS = 33.0
-N_RUNS = 30
 
 
 def num(valor: float, casas: int = 2) -> str:
@@ -78,9 +78,10 @@ def carregar() -> pd.DataFrame:
             "p95": p.loc[num, "p95_ms"],
             "p99": p.loc[num, "p99_ms"],
             "falha": d.loc[num, "falha_pct"],
-            # A barra representa o IC95 da média (desvio / √n), e não a dispersão
+            # A barra representa o IC95 da média (t · desvio / √n), e não a dispersão
             # entre execuções.
-            "falha_ic95": 1.96 * d.loc[num, "falha_std"] / np.sqrt(N_RUNS),
+            "n": int(d.loc[num, "num_runs"]),
+            "falha_ic95": semiamplitude(d.loc[num, "falha_std"], int(d.loc[num, "num_runs"])),
             "cor": config.ponto(num)["cor"],
         })
     if not linhas:
@@ -193,7 +194,7 @@ def main() -> int:
     painel_latencia(ax1, df)
     fig.text(0.5, 0.004,
              f"Carga fixa de 9 clientes de detecção de objetos nos cinco pontos; só "
-             f"muda quantos dos 14 servidores têm GPU. Média: {N_RUNS} execuções "
+             f"muda quantos dos 14 servidores têm GPU. Média: {'/'.join(str(v) for v in sorted(set(df['n'])))} execuções "
              "por ponto, barras de IC95 da média.\nPercentis: registro por tarefa, "
              "10 execuções por ponto — percentil exige a distribuição, que a "
              "métrica agregada não guarda. A taxa de falha por K está na figura de "

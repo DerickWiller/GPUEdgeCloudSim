@@ -1,6 +1,6 @@
 # Validação de saídas — 10 clientes YOLO sobre 1 GPU (N10)
 
-Gerado em 2026-10-07 08:28 por `analise/validar_saidas.py`.
+Gerado em 2026-11-11 14:51 por `analise/validar_saidas.py`.
 
 ## Configuração validada
 
@@ -26,9 +26,9 @@ Gerado em 2026-10-07 08:28 por `analise/validar_saidas.py`.
 | · | B7. Inflação do tempo no servidor | tempo no servidor ÷ mínimo físico da GPU = 89.42× (357.67 ms vs. 4.00 ms). Mede fila + escalonamento + time-share juntos — o motor não expõe o tempo de GPU isolado, então esses componentes não são separáveis. A ocupação real do buffer é a de B6: 89.2%. |
 | ✓ | B8. Atraso de rede ≥ piso analítico (contenção ON) | medido 40.9491347 ms vs. piso 4.4406746 ms = WLAN (94+105 KB ÷ 480 Mbps) + 2× PCIe (0.5 ms + 1 MB ÷ 15.75 GB/s). Disputa implícita = 12.008 fluxos simultâneos no AP. |
 | · | C1. Amostra | 30 runs, seeds 1–30, contíguas e sem repetição |
-| · | C2. Latência | 398.6176 ± 0.7329 ms · IC95 [398.3553, 398.8799] · CV 0.18% |
-| · | C2. Throughput | 247.3881 ± 0.3712 fps · IC95 [247.2552, 247.5209] · CV 0.15% |
-| · | C2. Falha | 18.3528 ± 0.1224 % · IC95 [18.3090, 18.3966] · CV 0.67% |
+| · | C2. Latência | 398.6176 ± 0.7329 ms · IC95 [398.3439, 398.8913] · CV 0.18% |
+| · | C2. Throughput | 247.3881 ± 0.3712 fps · IC95 [247.2495, 247.5267] · CV 0.15% |
+| · | C2. Falha | 18.3528 ± 0.1224 % · IC95 [18.3071, 18.3985] · CV 0.67% |
 | ✓ | C3. Independência entre seed e latência | correlação de Pearson r = +0.2156 (sem relação sistemática) |
 | · | D1. Deadline | requisito 100 ms · latência média 398.62 ms. max_delay_requirement não é lido pelo motor — nenhuma tarefa falha por estourar o prazo. A comparação é pós-hoc e sobre a média, não é taxa de violação. |
 | · | D2. Percentis | o simulador não emite latência por tarefa, apenas a média agregada → p50/p90/p99 exigem o registro por tarefa (execucao/rodar_deeplog.sh); a partir do SIMRESULT agregado são impossíveis. Comparar a média com o p90 de um artigo é comparar grandezas diferentes. |

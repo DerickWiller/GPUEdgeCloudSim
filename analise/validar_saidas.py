@@ -20,6 +20,7 @@ from pathlib import Path
 
 
 import config as cfg  # noqa: E402
+from estatistica import semiamplitude  # noqa: E402
 
 TOL = 1e-9          # igualdade de ponto flutuante em identidades exatas
 TOL_REL = 0.02      # 2% para comparações com modelo teórico
@@ -301,7 +302,7 @@ def validar(ponto, params, runs, rel):
                                  ("Falha", falha, "%")):
         media = statistics.fmean(série)
         desvio = statistics.stdev(série) if n > 1 else 0.0
-        ic = 1.96 * desvio / (n ** 0.5) if n > 1 else 0.0
+        ic = semiamplitude(desvio, n)
         cv = (desvio / media * 100) if media else 0.0
         rel.info(f"C2. {nome}",
                  f"{media:.4f} ± {desvio:.4f} {unidade} · IC95 [{media-ic:.4f}, {media+ic:.4f}] · "

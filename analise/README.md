@@ -8,6 +8,7 @@ de validação e figuras. Todos importam `config.py`, que centraliza os caminhos
 | Script | Função | Precisa de saídas brutas |
 |---|---|---|
 | `config.py` | caminhos, pontos, rótulos e cores | — |
+| `estatistica.py` | IC95 da média com o quantil t de Student (n − 1 graus de liberdade) | — |
 | `validar_run.py` | integridade de uma execução | sim |
 | `publicar_manifest.py` | define a amostra de um ponto (`run_manifest.csv`) | sim |
 | `agregar_metricas.py` | métricas por execução, por aplicação e do ponto | sim |

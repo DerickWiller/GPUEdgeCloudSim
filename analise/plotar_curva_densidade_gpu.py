@@ -16,7 +16,6 @@ Uso:
 """
 
 import csv
-import math
 import statistics
 import sys
 import xml.etree.ElementTree as ET
@@ -27,6 +26,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 import config as cfg
+from estatistica import semiamplitude
 
 APP_GPU = "YOLO_DETECTION"
 SAIDA = cfg.SERIES["densidade"]["pasta"] / "resultados"
@@ -71,10 +71,10 @@ def num_gpus(ponto):
 
 
 def resumo(valores):
-    """Média, desvio-padrão amostral e semiamplitude do IC95 (t ≈ 1,96 para n = 30)."""
+    """Média, desvio-padrão amostral e semiamplitude do IC95 (t de n - 1 graus de liberdade)."""
     media = statistics.fmean(valores)
     desvio = statistics.stdev(valores) if len(valores) > 1 else 0.0
-    ic = 1.96 * desvio / math.sqrt(len(valores)) if valores else 0.0
+    ic = semiamplitude(desvio, len(valores))
     return media, desvio, ic
 
 

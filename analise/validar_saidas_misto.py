@@ -25,6 +25,7 @@ from pathlib import Path
 
 
 import config as cfg  # noqa: E402
+from estatistica import semiamplitude  # noqa: E402
 
 TOL_REL = 0.02      # 2% para comparações com modelo teórico
 TOL_ABS_MS = 0.05   # 0,05 ms de folga absoluta em tempos
@@ -365,7 +366,7 @@ def validar(ponto, p, runs, rel):
     def stat(vals, rot, unid):
         m = statistics.fmean(vals)
         s = statistics.stdev(vals) if len(vals) > 1 else 0.0
-        ic = 1.96 * s / math.sqrt(len(vals)) if len(vals) > 1 else 0.0
+        ic = semiamplitude(s, len(vals))
         cv = (s / m * 100) if m else 0.0
         rel.info(f"C2 — {rot}",
                  f"{m:.4f} ± {s:.4f} {unid} | IC95% [{m-ic:.4f}, {m+ic:.4f}] | CV {cv:.2f}%")

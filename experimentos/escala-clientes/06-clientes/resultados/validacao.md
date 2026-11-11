@@ -1,6 +1,6 @@
 # Validação de saídas — 6 clientes YOLO sobre 1 GPU (N06)
 
-Gerado em 2026-10-07 08:28 por `analise/validar_saidas.py`.
+Gerado em 2026-11-11 14:51 por `analise/validar_saidas.py`.
 
 ## Configuração validada
 
@@ -26,7 +26,7 @@ Gerado em 2026-10-07 08:28 por `analise/validar_saidas.py`.
 | · | B7. Inflação do tempo no servidor | tempo no servidor ÷ mínimo físico da GPU = 3.13× (12.54 ms vs. 4.00 ms). Mede fila + escalonamento + time-share juntos — o motor não expõe o tempo de GPU isolado, então esses componentes não são separáveis. A ocupação real do buffer é a de B6: 1.2%. |
 | ✓ | B8. Atraso de rede ≥ piso analítico (contenção ON) | medido 8.0089384 ms vs. piso 4.4406746 ms = WLAN (94+105 KB ÷ 480 Mbps) + 2× PCIe (0.5 ms + 1 MB ÷ 15.75 GB/s). Disputa implícita = 2.076 fluxos simultâneos no AP. |
 | · | C1. Amostra | 30 runs, seeds 1–30, contíguas e sem repetição |
-| · | C2. Latência | 20.5488 ± 3.5995 ms · IC95 [19.2607, 21.8368] · CV 17.52% |
+| · | C2. Latência | 20.5488 ± 3.5995 ms · IC95 [19.2047, 21.8928] · CV 17.52% |
 | · | C2. Throughput | 181.8175 ± 0.0003 fps · IC95 [181.8174, 181.8176] · CV 0.00% |
 | · | C2. Falha | 0.0000 ± 0.0000 % · IC95 [0.0000, 0.0000] · CV 0.00% |
 | ✓ | C3. Independência entre seed e latência | correlação de Pearson r = +0.1863 (sem relação sistemática) |

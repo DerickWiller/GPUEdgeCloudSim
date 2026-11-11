@@ -20,7 +20,7 @@
 | **Registro por tarefa** (*deep log*) | Saída opcional com uma linha por tarefa, necessária para percentis e distribuições. |
 | **SIMRESULT** | Arquivos de saída do simulador com as métricas agregadas de uma execução. |
 | **Manifesto** | `run_manifest.csv` de um ponto: as execuções que formam a sua amostra, com status de validação e SHA-256. |
-| **IC95** | Intervalo de confiança de 95% da média entre as execuções de um ponto. |
+| **IC95** | Intervalo de confiança de 95% da média entre as execuções de um ponto: média ± t · s / √n, em que t é o quantil 0,975 da t de Student de n − 1 graus de liberdade (2,045 para 30 execuções, 2,262 para 10). Cálculo em `analise/estatistica.py`. |
 | **p50, p95, p99** | Percentis da latência por tarefa: valores abaixo dos quais estão 50%, 95% e 99% das tarefas concluídas. |
 | **Intervalo entre quadros** | 33 ms, o período de emissão a 30 fps. |
 | **Orçamento de latência** | 100 ms, limite de ponta a ponta para realidade aumentada; não é imposto pelo simulador. |

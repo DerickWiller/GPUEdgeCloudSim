@@ -34,6 +34,7 @@ WEB = Path(__file__).resolve().parent / "web"
 sys.path.insert(0, str(RAIZ / "analise"))
 sys.path.insert(0, str(RAIZ / "experimentos"))
 import config  # noqa: E402
+from estatistica import ic95  # noqa: E402
 import gerar_cenario as gc  # noqa: E402
 from validar_run import localizar_arquivos, validar, verificar_metricas  # noqa: E402
 
@@ -41,10 +42,6 @@ EXP = config.EXPERIMENTOS_DIR
 SAIDAS = config.SAIDAS_DIR
 BASH = os.environ.get("GPU_BASH") or shutil.which("bash") or "bash"
 WINDOWS = platform.system() == "Windows"
-# Quantil t de Student bilateral de 95%, por graus de liberdade (1 a 30); acima, 1,96.
-T95 = [None, 12.706, 4.303, 3.182, 2.776, 2.571, 2.447, 2.365, 2.306, 2.262, 2.228, 2.201, 2.179,
-       2.160, 2.145, 2.131, 2.120, 2.110, 2.101, 2.093, 2.086, 2.080, 2.074, 2.069, 2.064, 2.060,
-       2.056, 2.052, 2.048, 2.045, 2.042]
 NOME_VALIDO = re.compile(r"^[a-z0-9][a-z0-9-]{1,40}$")
 
 
@@ -144,11 +141,7 @@ def _resumo(valores: list) -> dict | None:
         return None
     n = len(valores)
     media = statistics.fmean(valores)
-    ic = 0.0
-    if n > 1:
-        t = T95[n - 1] if n - 1 < len(T95) else 1.96
-        ic = t * statistics.stdev(valores) / math.sqrt(n)
-    return {"media": media, "ic95": ic, "n": n}
+    return {"media": media, "ic95": ic95(valores), "n": n}
 
 
 def _publicado(pasta: Path) -> dict | None:

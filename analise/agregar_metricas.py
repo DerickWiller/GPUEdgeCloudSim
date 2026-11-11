@@ -18,11 +18,11 @@ import os
 import re
 import statistics
 import sys
-from math import sqrt
 from pathlib import Path
 from typing import Dict, List, Optional
 
 import config
+from estatistica import ic95
 
 def read_deadline_ms(pasta: Path) -> Optional[float]:
     """Menor max_delay_requirement do applications.xml do cenário, em ms.
@@ -219,14 +219,11 @@ def extract_metrics_from_run(run_dir: Path, run_id: int, seed: int,
 
 
 def confidence_interval(data: List[float]) -> tuple:
-    """Retorna (média, margem) para IC 95%."""
+    """Retorna (média, semiamplitude do IC95 da média), com o quantil t de n - 1 graus
+    de liberdade (analise/estatistica.py)."""
     if len(data) < 2:
         return (data[0] if data else 0.0, 0.0)
-    mean = statistics.mean(data)
-    std_dev = statistics.stdev(data)
-    n = len(data)
-    z_score = 1.96 if n >= 30 else 2.045
-    return (mean, z_score * (std_dev / sqrt(n)))
+    return (statistics.mean(data), ic95(data))
 
 
 def load_validated_runs(manifest_csv: Path) -> List[Dict]:

@@ -16,11 +16,11 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
-from math import sqrt
 import pandas as pd
 import seaborn as sns
 
 import config
+from estatistica import semiamplitude
 
 sns.set_style("whitegrid")
 plt.rcParams["figure.figsize"] = (12, 6)
@@ -113,7 +113,7 @@ def plot_line(df: pd.DataFrame, metric_col: str, ylabel: str, title: str,
     if len(df_v) > 1:
         media = df_v[metric_col].mean()
         desvio = df_v[metric_col].std()
-        margem = 1.96 * desvio / sqrt(len(df_v))
+        margem = semiamplitude(desvio, len(df_v))
         ax.axhline(media, color="#52514e", linestyle="--", linewidth=1.8,
                    label=f"Média = {media:.2f} {unit}")
         ax.axhspan(media - margem, media + margem, color="#52514e", alpha=0.12,

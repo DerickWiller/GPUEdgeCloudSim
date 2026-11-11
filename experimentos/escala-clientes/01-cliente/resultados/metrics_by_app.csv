@@ -1,2 +1,2 @@
 app,uses_gpu,num_runs,latency_ms,latency_std,latency_ic95,processing_ms,network_ms,failure_rate,failure_rate_std,failure_rate_ic95,failed_bw,failed_vm_capacity,failed_mobility,completed
-YOLO_DETECTION,True,30,8.440674603119106,8.952961625285576e-16,3.203776171916056e-16,3.999999999935439,4.4406746031841156,0.0,0.0,0.0,0,0,0,99999.8
+YOLO_DETECTION,True,30,8.440674603119106,8.952961625285576e-16,3.343042360613631e-16,3.999999999935439,4.4406746031841156,0.0,0.0,0.0,0,0,0,99999.8
