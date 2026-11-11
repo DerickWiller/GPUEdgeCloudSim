@@ -23,6 +23,7 @@ GPUEdgeCloudSim/      o simulador
   lib/                         CloudSim, Commons Math e Colt
 experimentos/         configurações e resultados agregados, por pergunta e por ponto
 analise/              agregação, validação e figuras (Python)
+interface/            interface local no navegador (Python e HTML)
 execucao/             compilação e execução das simulações (shell)
 docs/                 modelo, validação, guia de uso, glossário e referências
 saidas/               saídas brutas das simulações (não versionada)
@@ -40,6 +41,9 @@ bash execucao/compilar.sh
 bash execucao/rodar_teste_rapido.sh       # uma execução de 1 cliente; FRTT esperado: 8,44 ms
 bash execucao/rodar_experimento.sh K02    # 30 execuções de 2 servidores com GPU
 ```
+
+Pelo navegador, `bash execucao/interface.sh` abre uma interface local para rodar baterias,
+acompanhar resultados e criar cenários (`docs/interface.md`).
 
 Requisitos: Java 21 e Python 3.12 (`pip install -r requirements.txt`). Roda no Linux e,
 pelo Git Bash, no Windows. O guia completo está em [`docs/como-rodar.md`](docs/como-rodar.md).

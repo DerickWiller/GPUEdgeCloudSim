@@ -29,6 +29,11 @@ este for só o atalho da Microsoft Store. Diferenças já tratadas no repositór
 
 Uma bateria de N01 (sementes 1 a 30) no Windows reproduz o `metrics_runs.csv` publicado.
 
+## Interface no navegador
+
+`bash execucao/interface.sh` abre uma interface local que dispara os scripts deste guia,
+acompanha as baterias e cria cenários novos; detalhes em `docs/interface.md`.
+
 ## Identificação dos pontos
 
 Cada ponto experimental tem um código curto, usado por todos os scripts:
@@ -37,6 +42,10 @@ Cada ponto experimental tem um código curto, usado por todos os scripts:
 |---|---|---|
 | K01, K02, K03, K07, K14 | densidade de GPU: K servidores com GPU entre 14 | `experimentos/densidade-gpu/<KK>-gpus/` |
 | N01, N04, N06, N08, N09, N10, N12, N14 | escala de clientes: N clientes YOLO numa GPU | `experimentos/escala-clientes/<NN>-clientes/` |
+
+Os pontos dos demais experimentos, sem código curto, são indicados pela pasta relativa a
+`experimentos/`, como `cameras-fixas/local-primeiro/09-no-ponto-quente`; vale para todos os
+scripts que recebem um ponto.
 
 ## 1. Compilar
 
