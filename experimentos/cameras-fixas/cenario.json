@@ -1,0 +1,49 @@
+{
+  "titulo": "Câmeras fixas",
+  "gerado_por": "gerar_configs.py",
+  "pergunta": "A MAN alivia um ponto de acesso sobrecarregado sem penalizar os demais?",
+  "servidores": {
+    "quantidade": 4,
+    "com_gpu": 4,
+    "modelo": "tocze"
+  },
+  "carga": "yolo",
+  "dispositivos_por_ponto": [
+    2,
+    2,
+    1,
+    1
+  ],
+  "man": {
+    "ligada": true
+  },
+  "nuvem": "escala",
+  "variar": [
+    {
+      "campo": "politica",
+      "rotulo": "política",
+      "valores": [
+        "LOCAL",
+        "AUTO",
+        "LOCAL_FIRST"
+      ],
+      "pasta": {
+        "LOCAL": "local",
+        "AUTO": "rodizio",
+        "LOCAL_FIRST": "local-primeiro"
+      }
+    },
+    {
+      "campo": "dispositivos_por_ponto.0",
+      "rotulo": "câmeras no ponto quente",
+      "valores": [
+        2,
+        4,
+        6,
+        8,
+        9
+      ],
+      "pasta": "{v:02d}-no-ponto-quente"
+    }
+  ]
+}

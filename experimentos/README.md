@@ -28,5 +28,8 @@ pasta com a configuração lida pelo simulador e os resultados agregados da sua 
 ```
 
 Os três arquivos de configuração são gerados por [`gerar_configs.py`](gerar_configs.py);
-alterações devem ser feitas nele. As saídas brutas de cada execução ficam em
+alterações devem ser feitas nele. Cada experimento é descrito também por `cenario.json`,
+formato lido por [`gerar_cenario.py`](gerar_cenario.py), que gera os experimentos novos
+(inclusive os criados pela interface, `docs/interface.md`) e confere que a descrição dos
+publicados reproduz os valores versionados (`--conferir-todos`). As saídas brutas de cada execução ficam em
 `saidas/<experimento>/<ponto>/`, fora do controle de versão.

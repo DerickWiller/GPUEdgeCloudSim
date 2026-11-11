@@ -83,7 +83,9 @@ def vram_livre(clientes_yolo: int) -> int:
 # =============================================================================
 
 def config_properties(titulo: str, dispositivos: int, rede_nuvem: dict,
-                      chegada_periodica_global: bool, extra: str = "") -> str:
+                      chegada_periodica_global: bool, extra: str = "",
+                      duracao_min: int = 60, aquecimento_min: int = 5,
+                      man_banda_mbps: float = 1000, lan_atraso_s: float = 0.01) -> str:
     chegada = ("""
 # Chegada periódica para todas as aplicações: o quadro é emitido a cada
 # poisson_interarrival segundos, com fase inicial uniforme por dispositivo.
@@ -93,10 +95,10 @@ periodic_task_arrival=true
     return f"""# {titulo}
 # Arquivo gerado por experimentos/gerar_configs.py.
 
-# Duração, em minutos: 60 min simulados, dos quais os 5 primeiros são descartados
+# Duração, em minutos: {duracao_min} min simulados, dos quais os {aquecimento_min} primeiros são descartados
 # como aquecimento. Os intervalos de amostragem também estão em minutos (0,1 min = 6 s).
-simulation_time=60
-warm_up_period=5
+simulation_time={duracao_min}
+warm_up_period={aquecimento_min}
 vm_load_check_interval=0.1
 location_check_interval=0.1
 ap_delay_check_interval=0.1
@@ -116,9 +118,9 @@ mobile_device_counter_size={dispositivos}
 # rede GPU não usa WAN nem GSM.
 wan_propagation_delay={rede_nuvem['wan_propagation_delay']}
 gsm_propagation_delay=0.16
-lan_internal_delay=0.01
+lan_internal_delay={lan_atraso_s:g}
 wlan_bandwidth=480
-man_bandwidth=1000
+man_bandwidth={man_banda_mbps:g}
 wan_bandwidth=50
 gsm_bandwidth=20
 
@@ -422,14 +424,17 @@ def escrever(pasta: Path, config: str, apps: str, edge: str) -> None:
     print(pasta.relative_to(RAIZ))
 
 
+NUVEM_DENSIDADE = {"comentario": "Nuvem: 4 VMs de 100 000 MIPS e atraso de 100 ms "
+                                 "(Toczé et al., 2020, Tabela 5).",
+                   "wan_propagation_delay": 0.1,
+                   "number_of_vm_on_cloud_host": 4, "mips_for_cloud_vm": 100000}
+NUVEM_ESCALA = {"comentario": "Nuvem: valores de referência do EdgeCloudSim.",
+                "wan_propagation_delay": 0.15,
+                "number_of_vm_on_cloud_host": 2, "mips_for_cloud_vm": 50000}
+
+
 def main() -> None:
-    nuvem_densidade = {"comentario": "Nuvem: 4 VMs de 100 000 MIPS e atraso de 100 ms "
-                                     "(Toczé et al., 2020, Tabela 5).",
-                       "wan_propagation_delay": 0.1,
-                       "number_of_vm_on_cloud_host": 4, "mips_for_cloud_vm": 100000}
-    nuvem_escala = {"comentario": "Nuvem: valores de referência do EdgeCloudSim.",
-                    "wan_propagation_delay": 0.15,
-                    "number_of_vm_on_cloud_host": 2, "mips_for_cloud_vm": 50000}
+    nuvem_densidade, nuvem_escala = NUVEM_DENSIDADE, NUVEM_ESCALA
 
     for k in DENSIDADE_K:
         escrever(pasta_densidade(k),

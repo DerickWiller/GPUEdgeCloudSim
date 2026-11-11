@@ -1,0 +1,34 @@
+{
+  "titulo": "Densidade de GPU",
+  "gerado_por": "gerar_configs.py",
+  "pergunta": "Quantos servidores de borda precisam ter GPU?",
+  "servidores": {
+    "quantidade": 14,
+    "com_gpu": 1,
+    "modelo": "tocze"
+  },
+  "atratividade": "ciclo",
+  "carga": "mista",
+  "dispositivos": 30,
+  "nuvem": "densidade",
+  "variar": [
+    {
+      "campo": "servidores.com_gpu",
+      "rotulo": "servidores com GPU",
+      "valores": [
+        1,
+        2,
+        3,
+        7,
+        14
+      ],
+      "pasta": {
+        "1": "01-gpu",
+        "2": "02-gpus",
+        "3": "03-gpus",
+        "7": "07-gpus",
+        "14": "14-gpus"
+      }
+    }
+  ]
+}

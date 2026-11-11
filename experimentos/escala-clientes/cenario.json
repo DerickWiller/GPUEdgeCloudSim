@@ -1,0 +1,38 @@
+{
+  "titulo": "Escala de clientes",
+  "gerado_por": "gerar_configs.py",
+  "pergunta": "Quantos clientes uma GPU atende?",
+  "servidores": {
+    "quantidade": 1,
+    "com_gpu": 1,
+    "modelo": "rodrigues"
+  },
+  "carga": "yolo",
+  "nuvem": "escala",
+  "variar": [
+    {
+      "campo": "dispositivos",
+      "rotulo": "clientes YOLO",
+      "valores": [
+        1,
+        4,
+        6,
+        8,
+        9,
+        10,
+        12,
+        14
+      ],
+      "pasta": {
+        "1": "01-cliente",
+        "4": "04-clientes",
+        "6": "06-clientes",
+        "8": "08-clientes",
+        "9": "09-clientes",
+        "10": "10-clientes",
+        "12": "12-clientes",
+        "14": "14-clientes"
+      }
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+{
+  "titulo": "Dois servidores",
+  "gerado_por": "gerar_configs.py",
+  "pergunta": "A partir de quantos clientes compensa enviar quadros à GPU remota, pela MAN?",
+  "servidores": {
+    "quantidade": 2,
+    "com_gpu": 2,
+    "modelo": "tocze"
+  },
+  "carga": "yolo",
+  "mobilidade": "fixa",
+  "ponto_fixo": 0,
+  "man": {
+    "ligada": true
+  },
+  "nuvem": "escala",
+  "variar": [
+    {
+      "campo": "politica",
+      "rotulo": "política",
+      "valores": [
+        "LOCAL",
+        "AUTO"
+      ],
+      "pasta": {
+        "LOCAL": "local",
+        "AUTO": "rodizio"
+      }
+    },
+    {
+      "campo": "dispositivos",
+      "rotulo": "clientes YOLO",
+      "valores": [
+        1,
+        4,
+        6,
+        8,
+        9,
+        10,
+        12,
+        14
+      ],
+      "pasta": {
+        "1": "01-cliente",
+        "4": "04-clientes",
+        "6": "06-clientes",
+        "8": "08-clientes",
+        "9": "09-clientes",
+        "10": "10-clientes",
+        "12": "12-clientes",
+        "14": "14-clientes"
+      }
+    }
+  ],
+  "excluir": [
+    {
+      "politica": "AUTO",
+      "dispositivos": 10
+    },
+    {
+      "politica": "AUTO",
+      "dispositivos": 12
+    },
+    {
+      "politica": "AUTO",
+      "dispositivos": 14
+    }
+  ]
+}
