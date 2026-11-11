@@ -376,9 +376,10 @@ def _caminho_do_shell(texto: str) -> Path:
 
 
 def nova_bateria(d: dict) -> Bateria:
-    pontos = [str(p) for p in (d.get("pontos") or [d.get("ponto", "")])]
-    for p in pontos:
-        config.ponto(p)  # recusa ponto inexistente
+    # Código curto (K02) ou pasta: guarda-se sempre a pasta do ponto, que é onde ficam as
+    # saídas e a lista da bateria. config.ponto recusa ponto inexistente.
+    pontos = [config.ponto(str(p))["pasta"].relative_to(EXP).as_posix()
+              for p in (d.get("pontos") or [d.get("ponto", "")])]
     de, ate, paralelo = int(d.get("de", 1)), int(d.get("ate", 1)), int(d.get("paralelo", 1))
     if not pontos or not 1 <= de <= ate or (ate - de + 1) * len(pontos) > 2000 or not 1 <= paralelo <= 32:
         raise ValueError("pontos, sementes ou paralelo fora dos limites")
