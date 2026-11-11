@@ -61,7 +61,5 @@ pelo Git Bash, no Windows. O guia completo está em [`docs/como-rodar.md`](docs/
 
 ## Situação dos resultados
 
-Os resultados da escala de clientes são definitivos. Os da densidade de GPU são
-provisórios: a série será executada novamente com 30 execuções por ponto, e os números
-desta página e de [`experimentos/densidade-gpu/`](experimentos/densidade-gpu/) serão
-atualizados.
+Escala de clientes e densidade de GPU: 30 execuções por ponto, conferidas por
+`analise/validar_saidas.py` e `analise/validar_saidas_misto.py`.
