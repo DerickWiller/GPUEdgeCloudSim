@@ -103,14 +103,19 @@ def painel_latencia(ax, df: pd.DataFrame):
             "orçamento de 1 quadro a 30 fps (33 ms)", ha="right", va="bottom",
             fontsize=9.5, color=INK_MUTED)
 
-    # Uma única anotação para os dois pontos com p99 acima do orçamento, que têm o
-    # mesmo valor.
+    # Uma única anotação para os pontos com K > 1 e p99 acima do orçamento; o texto diz
+    # se os valores coincidem ou lista cada um.
     estourados = df[(df["p99"] > ORCAMENTO_QUADRO_MS) & (df["k"] > 1)]
     if len(estourados):
         centro = float(estourados.index.to_series().mean())
-        alvo = float(estourados["p99"].iloc[0])
+        valores = [float(v) for v in estourados["p99"]]
+        alvo = sum(valores) / len(valores)
         quais = " e ".join(str(int(k)) for k in estourados["k"])
-        ax.annotate(f"p99 idêntico com {quais} GPUs ({num(alvo)} ms):\n"
+        if max(valores) - min(valores) < 0.005:
+            titulo = f"p99 idêntico com {quais} GPUs ({num(valores[0])} ms):"
+        else:
+            titulo = f"p99 com {quais} GPUs: {' e '.join(num(v) for v in valores)} ms;"
+        ax.annotate(f"{titulo}\n"
                     "a GPU a mais não encurta a cauda aqui",
                     xy=(centro, alvo), xytext=(0, 34), textcoords="offset points",
                     ha="center", fontsize=9.5, fontweight="bold", color="#c0392b",
