@@ -19,7 +19,8 @@ andamento. Roda no Linux e, pelo Git Bash, no Windows.
 - Experimento: tabela dos pontos com latência média do YOLO (± IC95) e taxa de falha,
   gráfico da latência contra a variável do experimento e figuras do ponto. Para os pontos
   com amostra oficial (`resultados/`), os números são os publicados; para os demais, os das
-  execuções encontradas em `saidas/`, uma por semente.
+  execuções encontradas em `saidas/`, uma por semente. O gráfico mostra o IC95 em barras e
+  tem opção de escala logarítmica, para quando a latência vai de poucos ms a centenas.
 - Nova bateria: um ponto ou todos os pontos do experimento, intervalo de sementes,
   execuções em paralelo e registro por tarefa. O limite sugerido de execuções em paralelo
   supõe 2 GB por execução (`-Xms2g` de `rodar_simulacao.sh`) e 2 GB para o sistema.
@@ -31,8 +32,8 @@ andamento. Roda no Linux e, pelo Git Bash, no Windows.
 - Novo cenário: construtor numa página. À esquerda, as escolhas (servidores e GPUs, quem usa
   e onde, MAN, forma de escolher a GPU e o que comparar); à direita, o desenho da topologia,
   atualizado a cada mudança, com os limites físicos em vermelho (WLAN saturada, memória da
-  GPU insuficiente). A conferência com `experimentos/gerar_cenario.py` roda a cada mudança, e
-  `Criar experimento` grava `experimentos/<nome>/cenario.json` e os pontos. O mesmo desenho
+  GPU insuficiente). `experimentos/gerar_cenario.py` confere o cenário a cada mudança, mesmo
+  sem título, e `Criar experimento` grava `experimentos/<nome>/cenario.json` e os pontos. O mesmo desenho
   aparece na página de cada experimento. A nuvem aparece apagada: o modelo de rede com GPU não
   tem WAN, e as tarefas de GPU não vão à nuvem (`docs/modelo.md`, seção 5).
 

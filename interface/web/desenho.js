@@ -144,7 +144,7 @@ function desenhoTopologia(cenOriginal) {
     if (qtd) {
       g += _dispositivos(x, yD, qtd, icone, satura ? "var(--alerta)" : "var(--lar)", caixa);
       const linhas = Math.ceil(Math.min(qtd, 12) / Math.max(3, Math.floor(caixa / 22)));
-      const yRot = yD + linhas * 24 + (qtd > 12 ? 18 : 4);
+      const yRot = yD + linhas * 24 + (qtd > 12 ? 26 : 4);
       g += `<text x="${x}" y="${yRot}" text-anchor="middle" class="d-rot" fill="${satura ? "var(--alerta)" : "var(--ink)"}">${_esc(rotulo)}</text>`;
       if (satura) g += `<text x="${x}" y="${yRot + 16}" text-anchor="middle" class="d-alerta">WLAN satura com mais de 9</text>`;
       yFim = Math.max(yFim, yRot + (satura ? 16 : 0));
@@ -184,5 +184,6 @@ function desenhoTopologia(cenOriginal) {
   }
   avisos.forEach((a, i) => (g += `<text x="${L}" y="${altura + i * 18}" class="d-alerta">${_esc(a)}</text>`));
   altura += avisos.length * 18 + 6;
-  return `<svg class="topologia" viewBox="0 0 ${W} ${altura}" role="img" aria-label="Topologia do cenário">${g}</svg>`;
+  // Largura máxima igual à do desenho, para que o texto tenha o mesmo tamanho com 1 ou 8 servidores.
+  return `<svg class="topologia" viewBox="0 0 ${W} ${altura}" style="max-width:${W}px" role="img" aria-label="Topologia do cenário">${g}</svg>`;
 }

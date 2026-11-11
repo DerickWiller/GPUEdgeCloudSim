@@ -127,6 +127,16 @@ a { color: var(--link); }
 details summary { color: var(--link); }
 .st.local { background: var(--soft); color: var(--link); }
 .desenho-rolagem { overflow-x: auto; }
+.desenho-rolagem svg.topologia { display: block; margin: 0 auto; }
+#figuras:empty { display: none; }
+td.com-falha { color: var(--er-ink); font-weight: 600; }
+.cab-grafico { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.chk.mini { margin: 0; font-size: 13px; color: var(--ink2); font-weight: 400; }
+label.chk { margin-bottom: 0; }
+@media (max-width: 600px) {
+  .amb { display: none; }
+  header .btn { margin-left: auto; }
+}
 .passo-off { color: var(--ink2); font-size: 14px; margin: 0; }
 @media (max-width: 960px) {
   nav { display: flex; gap: 6px; overflow-x: auto; padding: 8px 10px; white-space: nowrap; }

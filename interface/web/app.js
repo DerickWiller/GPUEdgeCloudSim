@@ -81,8 +81,8 @@ function desenharLista() {
   const pub = estado.experimentos.filter((e) => e.publicado);
   const outros = estado.experimentos.filter((e) => !e.publicado);
   const item = (e) => `<a data-exp="${esc(e.nome)}" class="${vista === "exp" && atual && atual.nome === e.nome ? "ativo" : ""}">${esc(e.titulo)} <small>${e.pontos} pontos</small></a>`;
-  $("#lista").innerHTML = `<h4>Experimentos publicados</h4>${pub.map(item).join("")}` +
-    `<h4>Outros cenários</h4>${outros.length ? outros.map(item).join("") : '<p class="vazio" style="padding:0 10px">Nenhum ainda. Use “Novo cenário”.</p>'}`;
+  $("#lista").innerHTML = `<h4 title="configurações versionadas, geradas por experimentos/gerar_configs.py">No repositório</h4>${pub.map(item).join("")}` +
+    `<h4 title="cenários com cenario.json próprio, criados pelo construtor">Criados na interface</h4>${outros.length ? outros.map(item).join("") : '<p class="vazio" style="padding:0 10px">Nenhum ainda. Use “Novo cenário”.</p>'}`;
   document.querySelectorAll("#lista a").forEach((a) => (a.onclick = () => abrirExperimento(a.dataset.exp)));
 }
 
@@ -114,13 +114,24 @@ function rotuloPonto(p) {
 async function atualizarDados() {
   const nome = atual.nome;
   const novo = await api(`/api/experimento?nome=${encodeURIComponent(nome)}`);
-  if (vista !== "exp" || !atual || atual.nome !== nome) return;
+  if (vista !== "exp" || !atual || atual.nome !== nome || !$("#grafico")) return;
   novo.cenario = atual.cenario;
   atual = novo;
   $("#grafico").innerHTML = grafico(atual);
+  ligarGrafico();
   $("#card-pontos").innerHTML = cardPontos(atual);
   ligarTabela();
+  $("#figuras").innerHTML = figuras(atual);
   desenharBaterias();
+}
+
+// Troca o ponto escolhido sem redesenhar a topologia nem o gráfico.
+function selecionarPonto(pasta) {
+  pontoSel = pasta;
+  $("#card-pontos").innerHTML = cardPontos(atual);
+  ligarTabela();
+  desenharFormBateria();
+  $("#figuras").innerHTML = figuras(atual);
 }
 
 function valorDoPonto(p) {
@@ -143,7 +154,8 @@ function desenharExperimento() {
     <section class="card" id="form-bateria"></section>
     <section class="card" id="card-pontos">${cardPontos(e)}</section>
     <section class="card" id="baterias"></section>
-    ${figuras(e)}`;
+    <div id="figuras" class="span2">${figuras(e)}</div>`;
+  ligarGrafico();
   ligarTabela();
   desenharFormBateria();
   desenharBaterias();
@@ -155,7 +167,18 @@ function cardPontos(e) {
 }
 
 function ligarTabela() {
-  document.querySelectorAll("#tab-pontos tbody tr").forEach((tr) => (tr.onclick = () => { pontoSel = tr.dataset.pasta; desenharExperimento(); }));
+  document.querySelectorAll("#tab-pontos tbody tr").forEach((tr) => (tr.onclick = () => selecionarPonto(tr.dataset.pasta)));
+}
+
+// Escala do eixo da latência; a escolha fica só neste navegador.
+let escalaLog = false;
+try { escalaLog = localStorage.getItem("gpu.escalaLog") === "1"; } catch (_) { /* sem armazenamento */ }
+
+// Marcas do eixo logarítmico: 1, 2 e 5 de cada década entre ymin e ymax.
+function marcasLog(ymin, ymax) {
+  const out = [];
+  for (let d = Math.floor(Math.log10(ymin) + 1e-9); d <= Math.log10(ymax) + 1e-9; d++) [1, 2, 5].forEach((m) => { const v = m * 10 ** d; if (v >= ymin - 1e-9 && v <= ymax + 1e-9) out.push(v); });
+  return out;
 }
 
 function grafico(e) {
@@ -166,34 +189,78 @@ function grafico(e) {
   const numerico = vx.valores.every((v) => typeof v === "number");
   const series = vs ? vs.valores : [null];
   const dados = series.map((s) => e.pontos.filter((p) => !vs || p.valores[vs.campo] === s)
-    .map((p) => ({ x: p.valores[vx.campo], y: valorDoPonto(p).lat?.media, p })).filter((d) => d.y != null));
+    .map((p) => { const lat = valorDoPonto(p).lat; return { x: p.valores[vx.campo], y: lat?.media, ic: lat?.ic95 || 0, p }; })
+    .filter((d) => d.y != null));
   const todos = dados.flat();
   if (!todos.length) return `<h3>Resultado</h3><p class="vazio">Ainda não há execuções. Rode uma bateria ao lado.</p>`;
   const W = 640, H = 270, L = 52, R = 16, T = 18, B = 46;
-  const ymaxReal = Math.max(...todos.map((d) => d.y));
-  const passo = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000].find((s) => ymaxReal / s <= 6) || 1000;
-  const ymax = Math.ceil(ymaxReal / passo) * passo;
+  const topo = Math.max(...todos.map((d) => d.y + d.ic));
+  let py, marcas, ymin;
+  if (escalaLog) {
+    // Limites na marca 1, 2 ou 5 mais próxima por fora dos dados.
+    const base = Math.max(1e-3, Math.min(...todos.map((d) => (d.y - d.ic > 0 ? d.y - d.ic : d.y))));
+    const candidatas = marcasLog(10 ** Math.floor(Math.log10(base)), 10 ** Math.ceil(Math.log10(topo)));
+    ymin = Math.max(...candidatas.filter((m) => m <= base + 1e-9));
+    const ymax = Math.min(...candidatas.filter((m) => m >= topo - 1e-9));
+    const lmin = Math.log10(ymin), lmax = Math.log10(ymax);
+    py = (y) => T + (H - T - B) * (1 - (Math.log10(Math.max(y, ymin)) - lmin) / (lmax - lmin || 1));
+    marcas = marcasLog(ymin, ymax);
+  } else {
+    const passo = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000].find((s) => topo / s <= 6) || 1000;
+    const ymax = Math.ceil(topo / passo) * passo;
+    ymin = 0;
+    py = (y) => T + (H - T - B) * (1 - y / ymax);
+    marcas = [];
+    for (let t = 0; t <= ymax; t += passo) marcas.push(t);
+  }
   const xs = numerico ? vx.valores.slice().sort((a, b) => a - b) : vx.valores;
-  const xmin = numerico ? xs[0] : 0, xmax = numerico ? xs[xs.length - 1] : xs.length - 1;
-  const px = (x) => { const i = numerico ? x : xs.indexOf(x); return L + (W - L - R) * (xmax === xmin ? 0.5 : (i - xmin) / (xmax - xmin)); };
-  const py = (y) => T + (H - T - B) * (1 - y / ymax);
+  // Eixo numérico: posição proporcional ao valor. Eixo de categorias (política): faixas iguais,
+  // com o ponto no meio de cada uma, para o rótulo não ser cortado na borda.
+  const xmin = xs[0], xmax = xs[xs.length - 1];
+  const px = numerico
+    ? (x) => L + (W - L - R) * (xmax === xmin ? 0.5 : (x - xmin) / (xmax - xmin))
+    : (x) => L + (W - L - R) * (xs.indexOf(x) + 0.5) / xs.length;
   let g = "";
-  for (let t = 0; t <= ymax; t += passo) g += `<line class="grade" x1="${L}" x2="${W - R}" y1="${py(t)}" y2="${py(t)}"/><text x="${L - 6}" y="${py(t) + 4}" text-anchor="end">${num(t, 0)}</text>`;
+  marcas.forEach((t) => (g += `<line class="grade" x1="${L}" x2="${W - R}" y1="${py(t)}" y2="${py(t)}"/><text x="${L - 6}" y="${py(t) + 4}" text-anchor="end">${num(t, t > 0 && t < 1 ? Math.ceil(-Math.log10(t) - 1e-9) : 0)}</text>`));
   xs.forEach((x) => (g += `<text x="${px(x)}" y="${H - B + 18}" text-anchor="middle">${esc(rotuloValor(vx.campo, x))}</text>`));
   g += `<text x="${(L + W - R) / 2}" y="${H - 8}" text-anchor="middle">${esc(vx.rotulo)}</text>`;
   g += `<text x="14" y="${(T + H - B) / 2}" transform="rotate(-90 14 ${(T + H - B) / 2})" text-anchor="middle">latência média do YOLO (ms)</text>`;
+  // Séries com deslocamento horizontal pequeno e marcadores decrescentes, para que pontos iguais
+  // de séries diferentes (só local e menor tempo estimado com poucas câmeras) continuem visíveis.
+  const desloc = (i) => (dados.length > 1 ? (i - (dados.length - 1) / 2) * 5 : 0);
   dados.forEach((serie, i) => {
     const cor = corSerie(vs?.campo, series[i], i);
+    // Com a política como único eixo, cada ponto leva a cor da sua política.
+    const corDe = (d) => (!vs && vx.campo === "politica" && COR_POLITICA[d.x]) || cor;
     const ord = serie.slice().sort((a, b) => (numerico ? a.x - b.x : xs.indexOf(a.x) - xs.indexOf(b.x)));
-    if (ord.length > 1) g += `<polyline fill="none" stroke="${cor}" stroke-width="2.5" points="${ord.map((d) => `${px(d.x)},${py(d.y)}`).join(" ")}"/>`;
+    const x = (d) => px(d.x) + desloc(i);
+    if (numerico && ord.length > 1) g += `<polyline fill="none" stroke="${cor}" stroke-width="2.5" points="${ord.map((d) => `${x(d)},${py(d.y)}`).join(" ")}"/>`;
+    ord.forEach((d) => {
+      if (d.ic > 0) {
+        const y1 = py(d.y + d.ic), y2 = py(Math.max(d.y - d.ic, ymin));
+        g += `<g stroke="${corDe(d)}" stroke-width="1.5"><line x1="${x(d)}" x2="${x(d)}" y1="${y1}" y2="${y2}"/><line x1="${x(d) - 4}" x2="${x(d) + 4}" y1="${y1}" y2="${y1}"/><line x1="${x(d) - 4}" x2="${x(d) + 4}" y1="${y2}" y2="${y2}"/></g>`;
+      }
+    });
     ord.forEach((d) => {
       const v = valorDoPonto(d.p);
-      g += `<circle cx="${px(d.x)}" cy="${py(d.y)}" r="5" fill="${cor}" stroke="var(--card)" stroke-width="2"><title>${esc(d.p.pasta)}: ${num(d.y)} ms ± ${num(v.lat.ic95)} (n = ${v.lat.n}), falha ${num(v.falha?.media)}% · ${v.fonte}</title></circle>`;
+      g += `<circle cx="${x(d)}" cy="${py(d.y)}" r="${Math.max(3, 5.5 - 1.2 * i)}" fill="${corDe(d)}" stroke="var(--card)" stroke-width="1.5"><title>${esc(rotuloPonto(d.p))}: ${num(d.y)} ms ± ${num(v.lat.ic95)} (n = ${v.lat.n}), falha ${num(v.falha?.media)}% · ${v.fonte === "publicado" ? "amostra oficial" : "nesta máquina"}</title></circle>`;
     });
   });
   const leg = vs ? `<div class="leg">${series.map((s, i) => `<span><i style="background:${corSerie(vs.campo, s, i)}"></i>${esc(rotuloValor(vs.campo, s))}</span>`).join("")}</div>` : "";
-  return `<h3>Resultado</h3>${leg}<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Latência média por ${esc(vx.rotulo)}">${g}</svg>
-    <p class="nota">Passe o mouse nos pontos para ver IC95, n e falha.</p>`;
+  return `<div class="cab-grafico"><h3>Resultado</h3><label class="chk mini"><input type="checkbox" id="g-log" ${escalaLog ? "checked" : ""}> escala logarítmica</label></div>
+    ${leg}<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Latência média por ${esc(vx.rotulo)}">${g}</svg>
+    <p class="nota">Barras: intervalo de confiança de 95%. Passe o mouse nos pontos para ver n e falha.</p>`;
+}
+
+function ligarGrafico() {
+  const caixa = $("#g-log");
+  if (!caixa) return;
+  caixa.onchange = () => {
+    escalaLog = caixa.checked;
+    try { localStorage.setItem("gpu.escalaLog", escalaLog ? "1" : "0"); } catch (_) { /* sem armazenamento */ }
+    $("#grafico").innerHTML = grafico(atual);
+    ligarGrafico();
+  };
 }
 
 function tabelaPontos(e) {
@@ -205,7 +272,7 @@ function tabelaPontos(e) {
     const amostra = p.publicado ? `<span class="st ok" title="amostra oficial, em resultados/">oficial · ${p.publicado.latencia_ms.n}</span>`
       : p.execucoes ? `<span class="st local" title="repetições encontradas em saidas/">nesta máquina · ${p.execucoes}</span>` : `<span class="st nada">nenhuma ainda</span>`;
     return `<tr data-pasta="${esc(p.pasta)}" class="${p.pasta === pontoSel ? "sel" : ""}">${cel}
-      <td class="n">${v.lat ? `${num(v.lat.media)} ± ${num(v.lat.ic95)}` : "–"}</td><td class="n">${v.falha ? num(v.falha.media) + "%" : "–"}</td><td>${amostra}</td></tr>`;
+      <td class="n">${v.lat ? `${num(v.lat.media)} ± ${num(v.lat.ic95)}` : "–"}</td><td class="n ${v.falha?.media > 0 ? "com-falha" : ""}">${v.falha ? num(v.falha.media) + "%" : "–"}</td><td>${amostra}</td></tr>`;
   }).join("");
   return `<table id="tab-pontos"><thead><tr>${cab}<th class="n">Latência (ms)</th><th class="n">Falha</th><th>Repetições</th></tr></thead><tbody>${linhas}</tbody></table>`;
 }
@@ -213,7 +280,7 @@ function tabelaPontos(e) {
 function figuras(e) {
   const lista = [...e.pontos.filter((p) => p.pasta === pontoSel).flatMap((p) => p.figuras), ...e.figuras_comparativas];
   if (!lista.length) return "";
-  return `<section class="card span2"><h3>Figuras</h3><div class="figs">${lista.map((f) =>
+  return `<section class="card"><h3>Figuras</h3><div class="figs">${lista.map((f) =>
     `<a href="/arquivo?caminho=${encodeURIComponent(f)}" target="_blank"><img src="/arquivo?caminho=${encodeURIComponent(f)}" alt="${esc(f)}" loading="lazy"><small>${esc(f.split("/").slice(-1)[0])}</small></a>`).join("")}</div>
     <p class="nota">Figuras geradas pelos scripts de analise/. As do ponto mudam com o ponto escolhido na tabela.</p></section>`;
 }
@@ -226,18 +293,19 @@ function comandoBateria(pontos, de, ate, deeplog) {
   return pontos.length === 1 ? cmd : `for p in ${pontos.join(" ")}; do\n  ${cmd}\ndone`;
 }
 
+let esperaMsgBateria = null;
 function desenharFormBateria() {
   const p = atual.pontos.find((x) => x.pasta === pontoSel) || atual.pontos[0];
   const prox = p && p.sementes.length ? Math.max(...p.sementes) + 1 : 1;
   const par = Math.min(estado.ambiente.paralelo_max || 2, 10);
   $("#form-bateria").innerHTML = `<h3>Rodar simulações</h3>
-    <label>O que rodar</label><select id="b-ponto"><option value="__todos">Todos os ${atual.pontos.length} pontos do experimento</option>
+    <label for="b-ponto">O que rodar</label><select id="b-ponto"><option value="__todos">Todos os ${atual.pontos.length} pontos do experimento</option>
       ${atual.pontos.map((x) => `<option value="${esc(x.pasta)}" ${x.pasta === p?.pasta ? "selected" : ""}>${esc(rotuloPonto(x))}</option>`).join("")}</select>
-    <label>Repetições: da semente … até a semente …</label>
-    <div class="linha"><input id="b-de" type="number" min="1" value="${prox}"><input id="b-ate" type="number" min="1" value="${prox + 9}"></div>
+    <label for="b-de">Repetições: da semente … até a semente …</label>
+    <div class="linha"><input id="b-de" type="number" min="1" value="${prox}" aria-label="primeira semente"><input id="b-ate" type="number" min="1" value="${prox + 9}" aria-label="última semente"></div>
     <p class="nota">Cada semente é uma repetição independente. 10 já dão uma ideia, e o artigo usa 30.</p>
-    <label>Simulações ao mesmo tempo (sugerido: até ${estado.ambiente.paralelo_max} nesta máquina)</label><input id="b-par" type="number" min="1" max="32" value="${par}">
-    <div class="chk"><input id="b-deep" type="checkbox"> Guardar o tempo de cada quadro (para percentis; ocupa mais disco)</div>
+    <label for="b-par">Simulações ao mesmo tempo (sugerido: até ${estado.ambiente.paralelo_max} nesta máquina)</label><input id="b-par" type="number" min="1" max="32" value="${par}">
+    <label class="chk"><input id="b-deep" type="checkbox"> Guardar o tempo de cada quadro (para percentis; ocupa mais disco)</label>
     <div class="acoes"><button class="btn" id="b-rodar">Rodar</button></div>
     <details><summary>Comando equivalente no terminal</summary><pre id="b-cmd"></pre></details>
     <div id="b-msg"></div>`;
@@ -253,7 +321,7 @@ function desenharFormBateria() {
   };
   ["#b-ponto", "#b-de", "#b-ate", "#b-par", "#b-deep"].forEach((s) => ($(s).oninput = atualizar));
   $("#b-ponto").onchange = () => {
-    if ($("#b-ponto").value !== "__todos") { pontoSel = $("#b-ponto").value; desenharExperimento(); return; }
+    if ($("#b-ponto").value !== "__todos") { selecionarPonto($("#b-ponto").value); return; }
     // Para todos os pontos, começa depois da maior semente já rodada em qualquer um deles.
     const de = proxima(atual.pontos.map((x) => x.pasta)), tam = +$("#b-ate").value - +$("#b-de").value;
     $("#b-de").value = de; $("#b-ate").value = de + Math.max(0, tam);
@@ -263,8 +331,14 @@ function desenharFormBateria() {
   $("#b-rodar").onclick = async () => {
     const d = ler();
     if (d.paralelo > estado.ambiente.paralelo_max && !confirm(`Mais de ${estado.ambiente.paralelo_max} em paralelo pode deixar a máquina sem memória. Continuar?`)) return;
-    try { await api("/api/bateria", d); $("#b-msg").innerHTML = `<div class="msg ok">Bateria iniciada.</div>`; atualizarEstado(); }
-    catch (err) { $("#b-msg").innerHTML = `<div class="msg er">${esc(err.message)}</div>`; }
+    try {
+      await api("/api/bateria", d);
+      $("#b-msg").innerHTML = `<div class="msg ok">Bateria iniciada; o andamento aparece em Baterias.</div>`;
+      clearTimeout(esperaMsgBateria);
+      esperaMsgBateria = setTimeout(() => { const m = $("#b-msg"); if (m) m.innerHTML = ""; }, 5000);
+      atualizarEstado();
+    }
+    catch (err) { clearTimeout(esperaMsgBateria); $("#b-msg").innerHTML = `<div class="msg er">${esc(err.message)}</div>`; }
   };
 }
 
@@ -327,6 +401,7 @@ const OPCOES_POLITICA = {
   AUTO: ["Rodízio", "manda cada quadro a uma GPU diferente, em sequência, sem olhar onde a câmera está"],
   LOCAL: ["Só local", "cada ponto de acesso usa só a própria GPU; nunca usa a MAN"],
 };
+const ORDEM_POLITICA = ["LOCAL", "AUTO", "LOCAL_FIRST"];
 const OPCOES_ATRASO = [[10, "10 ms", "valor do sample_app5 do EdgeCloudSim"], [5, "5 ms", "valor do sample_app4"], [0.25, "0,25 ms", "fibra óptica, cerca de 50 km"]];
 
 function abrirAssistente() {
@@ -369,10 +444,10 @@ function desenharConstrutor() {
   <div class="construtor span2">
    <div class="formulario">
     <section class="card"><h3>1. Nome</h3>
-      <label>Título do experimento</label><input id="c-titulo" type="text" value="${esc(c.titulo)}" placeholder="Ex.: Câmeras em 6 cruzamentos">
+      <label for="c-titulo">Título do experimento</label><input id="c-titulo" type="text" value="${esc(c.titulo)}" placeholder="Ex.: Câmeras em 6 cruzamentos">
       <p class="nota">Pasta: experimentos/<b id="c-pasta">${esc(c.nome || "…")}</b> · <a href="#" id="c-pasta-edita">alterar</a></p>
       <input id="c-nome" type="text" value="${esc(c.nome)}" style="display:none">
-      <label>O que você quer descobrir? (opcional)</label><input id="c-pergunta" type="text" value="${esc(c.pergunta)}" placeholder="Ex.: Vale a pena dividir as câmeras entre os cruzamentos?">
+      <label for="c-pergunta">O que você quer descobrir? (opcional)</label><input id="c-pergunta" type="text" value="${esc(c.pergunta)}" placeholder="Ex.: Vale a pena dividir as câmeras entre os cruzamentos?">
     </section>
 
     <section class="card"><h3>2. Servidores de borda</h3>
@@ -421,7 +496,7 @@ function desenharConstrutor() {
       <p class="sub">Cada valor vira um ponto do experimento. Marque no máximo duas comparações.</p>
       <div class="comparar">
         <label class="chk"><input type="checkbox" data-cmp="politica" ${cmp.politica.on ? "checked" : ""}> As formas de escolher a GPU</label>
-        ${cmp.politica.on ? `<div class="sub-op">${Object.entries(OPCOES_POLITICA).map(([k, [t]]) => `<label class="chk"><input type="checkbox" data-pol="${k}" ${cmp.politica.valores.includes(k) ? "checked" : ""}> ${t}</label>`).join("")}</div>` : ""}
+        ${cmp.politica.on ? `<div class="sub-op">${ORDEM_POLITICA.map((k) => `<label class="chk"><input type="checkbox" data-pol="${k}" ${cmp.politica.valores.includes(k) ? "checked" : ""}> ${OPCOES_POLITICA[k][0]}</label>`).join("")}</div>` : ""}
         <label class="chk"><input type="checkbox" data-cmp="disp" ${cmp.disp.on ? "checked" : ""}> A quantidade de ${nomeDisp}</label>
         ${cmp.disp.on ? `<div class="sub-op"><input type="text" data-valores="disp" value="${esc(cmp.disp.valores.join(" "))}"><small>valores separados por espaço, ex.: 2 4 6 8</small></div>` : ""}
         <label class="chk"><input type="checkbox" data-cmp="gpu" ${cmp.gpu.on ? "checked" : ""}> Quantos servidores têm GPU</label>
@@ -430,9 +505,9 @@ function desenharConstrutor() {
         ${cmp.prop.on ? `<div class="sub-op"><input type="text" data-valores="prop" value="${esc(cmp.prop.valores.join(" ").replace(/\./g, ","))}"><small>ex.: 0,25 5 10</small></div>` : ""}` : ""}
       </div>
       <details style="margin-top:12px"><summary>Avançado: duração e banda da MAN</summary>
-        <div class="linha3"><div><label>Tempo simulado (min)</label><input id="c-dur" type="number" min="1" value="${c.duracao_min}"></div>
-        <div><label>Descartar no início (min)</label><input id="c-aq" type="number" min="0" value="${c.aquecimento_min}"></div>
-        <div><label>Banda da MAN (Mbps)</label><input id="c-banda" type="number" min="1" value="${c.man.banda_mbps}"></div></div>
+        <div class="linha3"><div><label for="c-dur">Tempo simulado (min)</label><input id="c-dur" type="number" min="1" value="${c.duracao_min}"></div>
+        <div><label for="c-aq">Descartar no início (min)</label><input id="c-aq" type="number" min="0" value="${c.aquecimento_min}"></div>
+        <div><label for="c-banda">Banda da MAN (Mbps)</label><input id="c-banda" type="number" min="1" value="${c.man.banda_mbps}"></div></div>
       </details>
     </section>
    </div>
@@ -480,7 +555,9 @@ function ligarConstrutor() {
     desenharConstrutor();
   }));
   document.querySelectorAll("[data-pol]").forEach((x) => (x.onchange = () => {
-    a.comparar.politica.valores = [...document.querySelectorAll("[data-pol]:checked")].map((y) => y.dataset.pol);
+    // Ordem fixa (a dos experimentos publicados), independente da ordem em que se marca.
+    const marcadas = new Set([...document.querySelectorAll("[data-pol]:checked")].map((y) => y.dataset.pol));
+    a.comparar.politica.valores = ORDEM_POLITICA.filter((k) => marcadas.has(k));
     atualizarDesenho();
   }));
   document.querySelectorAll("[data-valores]").forEach((x) => (x.oninput = () => {
@@ -555,9 +632,11 @@ async function conferir() {
   if (!caixa) return;
   const meu = ++pedidoConferir;
   const c = cenarioParaEnviar();
-  if (!c.nome) { caixa.innerHTML = `<div class="msg av">Dê um título ao experimento para criá-lo.</div>`; return; }
+  // Sem título, a conferência roda com um nome provisório; só a criação exige o nome.
+  const semNome = !c.nome;
+  const existe = !semNome && estado.experimentos.some((x) => x.nome === c.nome);
   try {
-    const r = await api("/api/cenario/previa", c);
+    const r = await api("/api/cenario/previa", semNome ? { ...c, nome: "previa" } : c);
     if (meu !== pedidoConferir) return;  // chegou depois de uma conferência mais nova
     assistente.previa = r;
     const n = r.pontos.length;
@@ -583,12 +662,14 @@ async function conferir() {
       });
     };
     const excl = (c.excluir || []).map((x) => Object.entries(x).map(([k, v]) => `${CAMPOS[k]?.curto || k} = ${rotuloValor(k, v)}`).join(" e "));
-    caixa.innerHTML = agrupar(r.erros).map((e) => `<div class="msg er">${esc(e)}</div>`).join("")
+    caixa.innerHTML = (semNome ? `<div class="msg av">Dê um título ao experimento para criá-lo.</div>` : "")
+      + (existe ? `<div class="msg er">Já existe experimentos/${esc(c.nome)}. Escolha outro título ou altere a pasta.</div>` : "")
+      + agrupar(r.erros).map((e) => `<div class="msg er">${esc(e)}</div>`).join("")
       + agrupar(r.avisos).map((e) => `<div class="msg av">${esc(e)}</div>`).join("")
       + (!r.erros.length ? `<div class="msg ok"><b>${n} ponto${n === 1 ? "" : "s"}</b>${nomes ? `: ${esc(nomes)}` : ""}. Depois de criar, cada ponto roda as repetições (sementes) que você escolher.</div>` : "")
       + (excl.length ? `<p class="nota">Combinações excluídas (vindas do experimento copiado): ${esc(excl.join("; "))}.</p>` : "")
       + (r.exemplo ? `<details><summary>Ver a configuração gerada (primeiro ponto)</summary><pre>${esc(r.exemplo)}</pre></details>` : "");
-    $("#w-criar").disabled = r.erros.length > 0;
+    $("#w-criar").disabled = r.erros.length > 0 || semNome || existe;
   } catch (e) { if (meu === pedidoConferir) caixa.innerHTML = `<div class="msg er">${esc(e.message)}</div>`; }
 }
 
