@@ -91,6 +91,12 @@ saidas/            saídas brutas das simulações, fora do controle de versão
 - [`docs/glossario.md`](docs/glossario.md): termos e unidades.
 - [`docs/referencias.bib`](docs/referencias.bib): referências.
 
+## Licença
+
+GPL-3.0 ([`LICENSE`](LICENSE)), a mesma do EdgeCloudSim, do qual este código deriva. As
+bibliotecas em `GPUEdgeCloudSim/lib` (CloudSim, Apache Commons Math e Colt) mantêm as
+suas próprias licenças.
+
 ## Autoria
 
 Desenvolvido por Dérick Willer Borges Monteiro no Instituto de Informática da Universidade
