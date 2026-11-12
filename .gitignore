@@ -9,6 +9,3 @@ __pycache__/
 .idea/
 *.iml
 .vscode/
-
-# Instruções locais para o assistente de código
-CLAUDE.md

@@ -85,8 +85,9 @@ rejeita os quadros na admissão: todas as falhas da série são por capacidade.
 
 Todos os sorteios de uma execução derivam da semente (`docs/modelo.md`, seção 4), e a
 mesma semente reproduz a execução byte a byte, exceto o tempo de relógio registrado no
-SIMRESULT. Os resultados da densidade de GPU são provisórios e serão regerados com 30
-execuções por ponto.
+SIMRESULT. As amostras publicadas da escala de clientes e da densidade de GPU, com 30
+execuções por ponto, seguem essa regra; N01 e N14 foram rodados de novo e geraram os
+mesmos `metrics_runs.csv`.
 
 ## 4. Limitações
 

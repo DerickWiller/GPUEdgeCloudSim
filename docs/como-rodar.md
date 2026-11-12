@@ -132,7 +132,7 @@ python3 analise/plotar_multi_latencia.py --serie escala
 python3 analise/plotar_distribuicao_latencia.py --serie escala   # exige registro por tarefa
 ```
 
-Comparações entre os dois experimentos, em `experimentos/comparativos/`:
+Comparações entre a escala de clientes e a densidade de GPU, em `experimentos/comparativos/`:
 
 ```bash
 python3 analise/plotar_conservacao_fluxo.py
